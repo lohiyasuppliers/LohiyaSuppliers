@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lohiya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lohiya
+      POSTGRES_PASSWORD: lohiya_dev
+      POSTGRES_DB: lohiya_suppliers
+    ports:
+      - "5432:5432"
+    volumes:
+      - lohiya_pg_data:/var/lib/postgresql/data
+
+volumes:
+  lohiya_pg_data:
