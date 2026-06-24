@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma.$runCommandRaw({ ping: 1 });
     const [products, clients, orders] = await Promise.all([
       prisma.product.count({ where: { isActive: true } }),
       prisma.user.count({ where: { role: "CLIENT", isActive: true } }),
