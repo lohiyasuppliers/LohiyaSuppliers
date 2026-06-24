@@ -14,6 +14,9 @@ import {
   ChevronLeft,
   ChevronRight,
   IndianRupee,
+  Image,
+  Globe,
+  Gift,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -24,6 +27,10 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/users", label: "Clients", icon: Users },
+  { href: "/admin/banners", label: "Banners", icon: Image },
+  { href: "/admin/rewards", label: "Discount & Cashback", icon: Gift },
+  { href: "/admin/coupons", label: "Coupons", icon: IndianRupee },
+  { href: "/admin/website", label: "Website", icon: Globe },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/reports", label: "Reports", icon: FileText },
   { href: "/admin/settings", label: "Settings", icon: Settings },
@@ -36,23 +43,25 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "bg-gradient-to-b from-brand-950 to-brand-900 text-white flex flex-col transition-all duration-300 shrink-0 shadow-xl",
-        collapsed ? "w-16" : "w-64"
+        "relative flex shrink-0 flex-col bg-gradient-to-b from-brand-950 via-brand-900 to-brand-950 text-white shadow-2xl transition-all duration-300",
+        collapsed ? "w-[72px]" : "w-64"
       )}
     >
-      <div className="p-4 flex items-center gap-3 border-b border-brand-900">
-        <div className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-sm shrink-0">
+      <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-brand-400/20 to-transparent" />
+
+      <div className="flex items-center gap-3 border-b border-white/10 p-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 font-bold text-sm shadow-lg shadow-brand-900/50">
           LS
         </div>
         {!collapsed && (
-          <div>
-            <div className="font-bold text-sm">Lohiya Suppliers</div>
-            <div className="text-xs text-brand-400">B2B Admin</div>
+          <div className="admin-fade-in">
+            <div className="text-sm font-bold tracking-tight">Lohiya Suppliers</div>
+            <div className="text-xs text-brand-300">B2B Admin Panel</div>
           </div>
         )}
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+      <nav className="admin-nav-stagger flex-1 space-y-1 overflow-y-auto px-2 py-4">
         {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -62,14 +71,22 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors",
+                "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-300 motion-btn-press",
                 isActive
-                  ? "bg-brand-600/80 text-white font-medium shadow-sm"
-                  : "text-brand-300 hover:bg-brand-800/60 hover:text-white"
+                  ? "bg-gradient-to-r from-brand-500/90 to-brand-600/80 font-semibold text-white shadow-lg shadow-brand-900/30 scale-[1.02]"
+                  : "text-brand-200 hover:bg-white/10 hover:text-white hover:translate-x-1"
               )}
               title={collapsed ? item.label : undefined}
             >
-              <item.icon className="w-5 h-5 shrink-0" />
+              {isActive && (
+                <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-white" />
+              )}
+              <item.icon
+                className={cn(
+                  "h-5 w-5 shrink-0 transition-transform duration-200",
+                  isActive ? "scale-110" : "group-hover:scale-105"
+                )}
+              />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
@@ -77,23 +94,26 @@ export function AdminSidebar() {
       </nav>
 
       {!collapsed && (
-        <div className="px-4 py-3 mx-2 mb-2 rounded-lg bg-brand-900/50 border border-brand-800">
-          <div className="flex items-center gap-2 text-xs text-brand-300">
-            <IndianRupee className="w-3.5 h-3.5" />
+        <div className="mx-2 mb-2 rounded-xl border border-white/10 bg-white/5 p-3 backdrop-blur-sm">
+          <div className="flex items-center gap-2 text-xs text-brand-200">
+            <IndianRupee className="h-3.5 w-3.5 text-brand-400" />
             Per-client pricing · GST invoicing
           </div>
         </div>
       )}
 
-      <div className="p-2 border-t border-brand-900">
+      <div className="border-t border-white/10 p-2">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-full flex items-center justify-center p-2 rounded-lg text-brand-400 hover:bg-brand-900 hover:text-white"
+          className="flex w-full items-center justify-center rounded-xl p-2 text-brand-300 transition-colors hover:bg-white/10 hover:text-white"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
         {!collapsed && (
-          <Link href="/" className="block text-center text-xs text-brand-400 hover:text-white py-2">
+          <Link
+            href="/"
+            className="block py-2 text-center text-xs text-brand-400 transition-colors hover:text-white"
+          >
             ← Back to Store
           </Link>
         )}

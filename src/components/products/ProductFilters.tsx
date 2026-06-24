@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ApplicationType } from "@prisma/client";
-import { APPLICATION_LABELS } from "@/lib/catalog";
+import { ApplicationType, APPLICATION_LABELS } from "@/lib/catalog-shared";
 import { ChevronDown, Filter, X } from "lucide-react";
 
 interface CategoryNode {

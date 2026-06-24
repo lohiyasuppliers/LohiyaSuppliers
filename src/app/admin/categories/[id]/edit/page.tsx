@@ -13,7 +13,7 @@ export default async function EditCategoryPage({ params }: Props) {
     prisma.category.findMany({
       where: { parentId: null, NOT: { id } },
       orderBy: { sortOrder: "asc" },
-      select: { id: true, name: true },
+      select: { id: true, name: true, application: true },
     }),
   ]);
   if (!category) notFound();

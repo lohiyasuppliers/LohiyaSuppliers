@@ -7,6 +7,7 @@ export async function GET() {
     siteName: s.businessName,
     contactEmail: s.contactEmail,
     contactPhone: s.contactPhone,
+    contactAddress: s.businessAddress,
     gstNumber: s.businessGstin,
     shippingRate: 0,
     taxRate: 18,

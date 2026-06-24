@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { formatPaise, formatDate, getStatusColor } from "@/lib/utils";
+import { formatPaise, formatDate, getStatusColor, getOrderStatusLabel } from "@/lib/utils";
 import { ArrowLeft } from "lucide-react";
-import { OrderStatusUpdater } from "@/components/admin/OrderStatusUpdater";
+import { AdminOrderWorkflowPanel } from "@/components/admin/AdminOrderWorkflowPanel";
+import { getPaymentStatusLabel } from "@/lib/utils";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -18,7 +19,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         include: { clientProfile: true },
       },
       items: { include: { product: true, variation: true } },
-      invoice: true,
     },
   });
 
@@ -42,10 +42,10 @@ export default async function AdminOrderDetailPage({ params }: Props) {
         </div>
         <div className="flex gap-2">
           <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(order.status)}`}>
-            {order.status.replace(/_/g, " ")}
+            {getOrderStatusLabel(order.status)}
           </span>
           <span className={`px-3 py-1 rounded-full text-sm ${getStatusColor(order.paymentStatus)}`}>
-            {order.paymentStatus}
+            {getPaymentStatusLabel(order.paymentStatus)}
           </span>
         </div>
       </div>
@@ -81,22 +81,46 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 ))}
               </tbody>
             </table>
-            <div className="mt-4 pt-4 border-t space-y-1 text-sm text-right">
-              <div>Subtotal: {formatPaise(order.subtotalPaise)}</div>
-              {order.discountPaise > 0 && (
-                <div className="text-green-600">Discount: -{formatPaise(order.discountPaise)}</div>
+            <div className="mt-4 pt-4 border-t space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Bill total</span>
+                <span className="font-medium">{formatPaise(order.totalPaise)}</span>
+              </div>
+              {order.paidPaise > 0 && (
+                <div className="flex justify-between text-emerald-700">
+                  <span>Paid (approved)</span>
+                  <span className="font-medium">{formatPaise(order.paidPaise)}</span>
+                </div>
               )}
-              <div className="font-bold text-lg">{formatPaise(order.totalPaise)}</div>
+              {order.pendingPaymentPaise > 0 && (
+                <div className="flex justify-between text-violet-700">
+                  <span>Submitted (pending)</span>
+                  <span className="font-medium">{formatPaise(order.pendingPaymentPaise)}</span>
+                </div>
+              )}
+              {(order.paidPaise < order.totalPaise || order.pendingPaymentPaise > 0) && (
+                <div className="flex justify-between text-amber-700 font-semibold">
+                  <span>Balance due</span>
+                  <span>{formatPaise(order.totalPaise - order.paidPaise - order.pendingPaymentPaise)}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border p-6">
-            <h2 className="font-bold mb-3">Update Status</h2>
-            <OrderStatusUpdater orderId={order.id} currentStatus={order.status} />
-            <p className="text-xs text-gray-500 mt-2">Type: {order.orderType}</p>
-          </div>
+          <AdminOrderWorkflowPanel
+            orderId={order.id}
+            orderNumber={order.orderNumber}
+            status={order.status}
+            paymentStatus={order.paymentStatus}
+            totalPaise={order.totalPaise}
+            paidPaise={order.paidPaise}
+            pendingPaymentPaise={order.pendingPaymentPaise}
+            paymentProof={order.paymentProof}
+            adminComment={order.adminComment}
+            rejectionReason={order.rejectionReason}
+          />
 
           <div className="bg-white rounded-xl border p-6">
             <h2 className="font-bold mb-3">Client</h2>
@@ -107,14 +131,6 @@ export default async function AdminOrderDetailPage({ params }: Props) {
               <p className="text-sm">State: {profile.billingState}</p>
             )}
           </div>
-
-          {order.invoice && (
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="font-bold mb-2">Invoice</h2>
-              <p className="text-sm">{order.invoice.invoiceNumber}</p>
-              <p className="text-sm font-medium mt-1">{formatPaise(order.invoice.totalPaise)}</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -1,14 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import { ProductCard } from "@/components/products/ProductCard";
+import { ProductGrid } from "@/components/products/ProductGrid";
+import { PricedProductGrid } from "@/components/products/PricedProductGrid";
 import { ProductFilters } from "@/components/products/ProductFilters";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import {
   getCatalogTree,
   getLeafCategories,
   parseApplicationParam,
-  productListSelect,
   APPLICATION_LABELS,
 } from "@/lib/catalog";
+import { getCachedBrands, getCachedProductList } from "@/lib/cache";
 import { ApplicationType } from "@prisma/client";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -30,43 +31,62 @@ interface Props {
 export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
   const application = parseApplicationParam(params.application);
-  const where: Record<string, unknown> = { isActive: true };
-
-  if (params.category) {
-    where.category = { slug: params.category };
-  } else if (application) {
-    where.category = { application };
-  }
-
-  if (params.brand) {
-    where.brand = params.brand;
-  }
-
-  if (params.search) {
-    where.OR = [
-      { name: { contains: params.search } },
-      { description: { contains: params.search } },
-      { brand: { contains: params.search } },
-    ];
-  }
 
   let orderBy: Record<string, string> = { createdAt: "desc" };
   if (params.sort === "price-asc") orderBy = { defaultPricePaise: "asc" };
   if (params.sort === "price-desc") orderBy = { defaultPricePaise: "desc" };
   if (params.sort === "name") orderBy = { name: "asc" };
 
-  const [products, catalogTree, leafCategories, brandRows] = await Promise.all([
-    prisma.product.findMany({ where, select: productListSelect, orderBy }),
+  const listKey = {
+    application: params.application,
+    category: params.category,
+    brand: params.brand,
+    sort: params.sort,
+  };
+
+  const [products, catalogTree, leafCategories, brands] = await Promise.all([
+    params.search
+      ? prisma.product.findMany({
+          where: {
+            isActive: true,
+            ...(params.category
+              ? { category: { slug: params.category } }
+              : application
+                ? { category: { application } }
+                : {}),
+            ...(params.brand ? { brand: params.brand } : {}),
+            OR: [
+              { name: { contains: params.search } },
+              { description: { contains: params.search } },
+              { brand: { contains: params.search } },
+            ],
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            brand: true,
+            description: true,
+            defaultPricePaise: true,
+            images: true,
+            category: {
+              select: {
+                name: true,
+                slug: true,
+                type: true,
+                parent: { select: { name: true, slug: true } },
+              },
+            },
+            _count: { select: { variations: { where: { isActive: true } } } },
+          },
+          orderBy,
+        })
+      : getCachedProductList(listKey),
     getCatalogTree(),
-    getLeafCategories(),
-    prisma.product.findMany({
-      where: { isActive: true, brand: { not: null } },
-      select: { brand: true },
-      distinct: ["brand"],
-    }),
+    getLeafCategories(application),
+    getCachedBrands(),
   ]);
 
-  const brands = brandRows.map((b) => b.brand!).filter(Boolean).sort();
   const pageTitle = application
     ? APPLICATION_LABELS[application] + " Products"
     : "All Products";
@@ -150,13 +170,12 @@ export default async function ProductsPage({ searchParams }: Props) {
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {products.map((product, i) => (
-                <ScrollReveal key={product.id} delay={Math.min(i * 50, 300)}>
-                  <ProductCard product={product} />
-                </ScrollReveal>
-              ))}
-            </div>
+            <PricedProductGrid productIds={products.map((p) => p.id)}>
+              <ProductGrid
+                products={products}
+                className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6"
+              />
+            </PricedProductGrid>
           )}
         </div>
       </div>

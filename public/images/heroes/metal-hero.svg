@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#072649"/>
+      <stop offset="50%" stop-color="#0154a1"/>
+      <stop offset="100%" stop-color="#0c87e8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="70%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#36a6f8" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#072649" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="600" fill="url(#bg)"/>
+  <rect width="1200" height="600" fill="url(#glow)"/>
+  <circle cx="900" cy="180" r="120" stroke="#36a6f8" stroke-width="3" opacity="0.4"/>
+  <circle cx="900" cy="180" r="80" stroke="#7cc5fc" stroke-width="2" opacity="0.6"/>
+  <circle cx="900" cy="180" r="40" fill="#0c87e8" opacity="0.8"/>
+  <path d="M200 420 L350 280 L500 380 L650 220 L800 340" stroke="#36a6f8" stroke-width="4" fill="none" opacity="0.5"/>
+  <rect x="150" y="380" width="200" height="8" rx="4" fill="#e0effe" opacity="0.3"/>
+  <rect x="180" y="400" width="160" height="6" rx="3" fill="#e0effe" opacity="0.2"/>
+  <text x="80" y="520" fill="#b9dffd" font-family="system-ui,sans-serif" font-size="28" font-weight="700" opacity="0.9">METAL APPLICATION</text>
+</svg>

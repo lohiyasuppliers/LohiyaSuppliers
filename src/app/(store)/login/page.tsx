@@ -33,8 +33,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+    <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 motion-page-store">
+      <div className="w-full max-w-md animate-pop-in">
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-xl gradient-hero flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
             LS

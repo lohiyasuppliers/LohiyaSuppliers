@@ -59,8 +59,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-lg">
+    <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 motion-page-store">
+      <div className="w-full max-w-lg animate-pop-in">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Register as B2B Client</h1>
           <p className="text-gray-500 mt-1">

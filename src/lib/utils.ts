@@ -54,4 +54,10 @@ export function parseJSON<T>(json: string, fallback: T): T {
 
 export const USER_ROLES = ["ADMIN", "CLIENT"] as const;
 
-export { ORDER_STATUSES, PAYMENT_STATUSES, getStatusColor } from "./status";
+export { ORDER_STATUSES, PAYMENT_STATUSES, getStatusColor, getOrderStatusLabel } from "./status";
+export { getPaymentStatusLabel } from "./constants";
+
+export function daysPendingSince(date: Date | string) {
+  const ms = Date.now() - new Date(date).getTime();
+  return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+}

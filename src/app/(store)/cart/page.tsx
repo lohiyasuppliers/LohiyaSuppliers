@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { CartPriceSync } from "@/components/cart/CartPriceSync";
 import { formatPaise } from "@/lib/utils";
+import { DEFAULT_GST_RATE_PERCENT } from "@/lib/constants";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 
 export default function CartPage() {
@@ -31,12 +33,13 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">
+    <div className="max-w-7xl mx-auto px-4 py-8 animate-fade-in-up">
+      <h1 className="text-3xl font-bold text-gray-900 mb-4">
         Shopping Cart ({totalItems} items)
       </h1>
+      <CartPriceSync />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 stagger-children">
         <div className="lg:col-span-2 space-y-4">
           {items.map((item) => (
             <div
@@ -97,7 +100,7 @@ export default function CartPage() {
               <span>{formatPaise(subtotalPaise)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">GST</span>
+              <span className="text-gray-500">GST @ {DEFAULT_GST_RATE_PERCENT}%</span>
               <span>{formatPaise(taxPaise)}</span>
             </div>
             <div className="border-t pt-3 flex justify-between font-bold text-lg">

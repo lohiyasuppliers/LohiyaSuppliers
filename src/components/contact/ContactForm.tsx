@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { ContactPhonesText } from "@/components/layout/ContactPhoneLinks";
 
 export function ContactForm({ contactPhone, contactEmail, contactAddress, businessHours }: {
   contactPhone: string;
@@ -51,7 +52,7 @@ export function ContactForm({ contactPhone, contactEmail, contactAddress, busine
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="space-y-6">
           {[
-            { icon: Phone, title: "Phone", value: contactPhone },
+            { icon: Phone, title: "Phone", value: ContactPhonesText() },
             { icon: Mail, title: "Email", value: contactEmail },
             { icon: MapPin, title: "Address", value: contactAddress },
             { icon: Clock, title: "Business Hours", value: businessHours },

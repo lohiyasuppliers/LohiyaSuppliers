@@ -1,6 +1,6 @@
 "use client";
 
-import { ORDER_STATUSES } from "@/lib/constants";
+import { ORDER_STATUSES, getOrderStatusLabel } from "@/lib/utils";
 
 export function OrderStatusUpdater({
   orderId,
@@ -22,11 +22,11 @@ export function OrderStatusUpdater({
     <select
       value={currentStatus}
       onChange={(e) => updateStatus(e.target.value)}
-      className="text-xs border rounded-lg px-2 py-1 bg-white"
+      className="text-xs border rounded-lg px-2 py-1 bg-white min-w-[160px]"
     >
       {ORDER_STATUSES.map((s) => (
         <option key={s} value={s}>
-          {s.replace(/_/g, " ")}
+          {getOrderStatusLabel(s)}
         </option>
       ))}
     </select>

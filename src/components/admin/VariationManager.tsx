@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, Sparkles, X } from "lucide-react";
+import { generateVariationSku } from "@/lib/sku";
+import { sanitizeAttributes } from "@/lib/attributes";
 
 export interface VariationDraft {
   id?: string;
@@ -14,6 +16,8 @@ export interface VariationDraft {
 
 interface VariationManagerProps {
   productId?: string;
+  productSlug: string;
+  brand: string;
   variations: VariationDraft[];
   onChange: (variations: VariationDraft[]) => void;
 }
@@ -26,53 +30,139 @@ const emptyVariation = (): VariationDraft => ({
   isActive: true,
 });
 
-export function VariationManager({ productId, variations, onChange }: VariationManagerProps) {
+function withGeneratedSku(
+  v: VariationDraft,
+  index: number,
+  productSlug: string,
+  brand: string
+): VariationDraft {
+  const attrs = sanitizeAttributes(v.attributes);
+  const hasAttrs = Object.values(attrs).some((val) => val);
+  if (!hasAttrs) return { ...v, attributes: attrs };
+  return {
+    ...v,
+    attributes: attrs,
+    sku: generateVariationSku(brand, productSlug, attrs, index),
+  };
+}
+
+export function VariationManager({
+  productId,
+  productSlug,
+  brand,
+  variations,
+  onChange,
+}: VariationManagerProps) {
   const [saving, setSaving] = useState(false);
+  const [newAttrKey, setNewAttrKey] = useState<Record<number, string>>({});
+
+  function updateVariations(next: VariationDraft[]) {
+    onChange(next.map((v, i) => withGeneratedSku(v, i, productSlug, brand)));
+  }
 
   function updateVariation(index: number, patch: Partial<VariationDraft>) {
     const next = [...variations];
     next[index] = { ...next[index], ...patch };
-    onChange(next);
+    updateVariations(next);
   }
 
-  function updateAttribute(index: number, key: string, value: string) {
+  function updateAttributeValue(index: number, key: string, value: string) {
     const next = [...variations];
     next[index] = {
       ...next[index],
       attributes: { ...next[index].attributes, [key]: value },
     };
-    onChange(next);
+    updateVariations(next);
+  }
+
+  function renameAttributeKey(index: number, oldKey: string, rawNewKey: string) {
+    const newKey = rawNewKey.trim().toLowerCase();
+    if (!newKey || newKey === oldKey) return;
+    const next = [...variations];
+    const attrs = { ...next[index].attributes };
+    if (newKey in attrs && newKey !== oldKey) {
+      alert(`Attribute "${newKey}" already exists on this variation.`);
+      return;
+    }
+    attrs[newKey] = attrs[oldKey] ?? "";
+    delete attrs[oldKey];
+    next[index] = { ...next[index], attributes: attrs };
+    updateVariations(next);
+  }
+
+  function removeAttributeKey(index: number, key: string) {
+    const next = [...variations];
+    const attrs = { ...next[index].attributes };
+    delete attrs[key];
+    next[index] = { ...next[index], attributes: attrs };
+    updateVariations(next);
   }
 
   function addAttributeKey(index: number) {
-    const key = prompt("Attribute name (e.g. size, grit):");
-    if (!key?.trim()) return;
-    updateAttribute(index, key.trim(), "");
+    const key = (newAttrKey[index] || "").trim().toLowerCase();
+    if (!key) return;
+    if (key in variations[index].attributes) {
+      alert(`Attribute "${key}" already exists.`);
+      return;
+    }
+    setNewAttrKey((prev) => ({ ...prev, [index]: "" }));
+    updateAttributeValue(index, key, "");
   }
 
   async function saveVariations() {
     if (!productId) return;
     setSaving(true);
+    const payload = variations.map((v, i) =>
+      withGeneratedSku(v, i, productSlug, brand)
+    );
     const res = await fetch(`/api/admin/products/${productId}/variations`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ variations }),
+      body: JSON.stringify({ variations: payload }),
     });
     if (!res.ok) alert((await res.json()).error || "Failed to save variations");
-    else alert("Variations saved!");
+    else {
+      const updated = await res.json();
+      onChange(
+        updated.map(
+          (v: {
+            id: string;
+            sku: string;
+            attributes: Record<string, string>;
+            defaultPricePaise: number | null;
+            imageUrl: string | null;
+            isActive: boolean;
+          }) => ({
+            id: v.id,
+            sku: v.sku,
+            attributes: v.attributes,
+            priceRupees:
+              v.defaultPricePaise != null ? (v.defaultPricePaise / 100).toString() : "",
+            imageUrl: v.imageUrl || "",
+            isActive: v.isActive,
+          })
+        )
+      );
+      alert("Variations saved!");
+    }
     setSaving(false);
   }
 
   return (
     <div className="bg-white rounded-xl border p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h3 className="font-semibold text-gray-900">Product Variations</h3>
-          <p className="text-sm text-gray-500">Sizes, grits, and other purchasable variants</p>
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-brand-600" />
+            Product Variations
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            Edit attribute names (size, grit, etc.) and values — SKU updates automatically.
+          </p>
         </div>
         <button
           type="button"
-          onClick={() => onChange([...variations, emptyVariation()])}
+          onClick={() => updateVariations([...variations, emptyVariation()])}
           className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100"
         >
           <Plus className="w-4 h-4" /> Add Variation
@@ -81,34 +171,30 @@ export function VariationManager({ productId, variations, onChange }: VariationM
 
       {variations.length === 0 ? (
         <p className="text-sm text-gray-500 py-4 text-center border border-dashed rounded-lg">
-          No variations yet. Add sizes, grits, or other options.
+          No variations yet. Add options with attributes like size or grit.
         </p>
       ) : (
         <div className="space-y-4">
           {variations.map((v, i) => (
             <div key={v.id || i} className="border rounded-xl p-4 bg-gray-50/50 space-y-3">
-              <div className="flex items-center gap-2">
-                <GripVertical className="w-4 h-4 text-gray-300" />
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-gray-700">Variation {i + 1}</span>
+                {v.sku && (
+                  <code className="text-xs font-mono bg-brand-50 text-brand-800 px-2 py-0.5 rounded">
+                    {v.sku}
+                  </code>
+                )}
                 <button
                   type="button"
-                  onClick={() => onChange(variations.filter((_, idx) => idx !== i))}
+                  onClick={() => updateVariations(variations.filter((_, idx) => idx !== i))}
                   className="ml-auto p-1.5 text-red-500 hover:bg-red-50 rounded"
+                  aria-label="Remove variation"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1">SKU *</label>
-                  <input
-                    required
-                    value={v.sku}
-                    onChange={(e) => updateVariation(i, { sku: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg text-sm font-mono"
-                    placeholder="DEER-INOX-4INCH"
-                  />
-                </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">Price (₹)</label>
                   <input
@@ -119,8 +205,10 @@ export function VariationManager({ productId, variations, onChange }: VariationM
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
                 </div>
-                <div className="sm:col-span-2">
-                  <label className="text-xs font-medium text-gray-600 block mb-1">Image URL</label>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1">
+                    Image URL (optional)
+                  </label>
                   <input
                     value={v.imageUrl}
                     onChange={(e) => updateVariation(i, { imageUrl: e.target.value })}
@@ -128,34 +216,58 @@ export function VariationManager({ productId, variations, onChange }: VariationM
                   />
                 </div>
               </div>
+
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-medium text-gray-600">Attributes</label>
-                  <button
-                    type="button"
-                    onClick={() => addAttributeKey(i)}
-                    className="text-xs text-brand-600 hover:underline"
-                  >
-                    + Add attribute
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
+                <label className="text-xs font-medium text-gray-600 block mb-2">
+                  Attributes (name + value — drives SKU &amp; storefront dropdowns)
+                </label>
+                <div className="space-y-2">
                   {Object.entries(v.attributes).map(([key, val]) => (
-                    <div key={key} className="flex gap-1">
+                    <div key={`${i}-${key}`} className="flex gap-2 items-center">
                       <input
-                        value={key}
-                        readOnly
-                        className="w-1/3 px-2 py-1.5 border rounded text-xs bg-gray-100"
+                        defaultValue={key}
+                        onBlur={(e) => renameAttributeKey(i, key, e.target.value)}
+                        placeholder="e.g. size"
+                        className="w-28 px-2 py-1.5 border rounded-lg text-xs capitalize bg-white"
+                        title="Attribute name (editable)"
                       />
                       <input
                         value={val}
-                        onChange={(e) => updateAttribute(i, key, e.target.value)}
-                        className="flex-1 px-2 py-1.5 border rounded text-xs"
+                        onChange={(e) => updateAttributeValue(i, key, e.target.value)}
+                        placeholder="e.g. 4 inch"
+                        className="flex-1 px-2 py-1.5 border rounded-lg text-sm bg-white"
                       />
+                      <button
+                        type="button"
+                        onClick={() => removeAttributeKey(i, key)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded"
+                        aria-label={`Remove ${key}`}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
+                  <div className="flex gap-2 items-center pt-1">
+                    <input
+                      value={newAttrKey[i] || ""}
+                      onChange={(e) =>
+                        setNewAttrKey((prev) => ({ ...prev, [i]: e.target.value }))
+                      }
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addAttributeKey(i))}
+                      placeholder="New attribute (e.g. grit)"
+                      className="w-36 px-2 py-1.5 border border-dashed rounded-lg text-xs bg-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addAttributeKey(i)}
+                      className="text-xs text-brand-600 hover:underline font-medium"
+                    >
+                      + Add attribute
+                    </button>
+                  </div>
                 </div>
               </div>
+
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

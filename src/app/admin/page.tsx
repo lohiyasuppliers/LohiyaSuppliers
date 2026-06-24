@@ -1,28 +1,33 @@
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/session";
-import { formatPaise, formatDateTime } from "@/lib/utils";
+import { formatPaise } from "@/lib/utils";
 import {
   Package,
   ShoppingCart,
   Users,
   DollarSign,
   Clock,
-  CheckCircle,
   AlertCircle,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
-import { RevenueChart } from "@/components/admin/RevenueChart";
+import { DynamicRevenueChart } from "@/components/admin/DynamicRevenueChart";
 import { RecentOrders } from "@/components/admin/RecentOrders";
 import { CatalogOverview } from "@/components/admin/CatalogOverview";
+import { AdminStatCard } from "@/components/admin/AdminStatCard";
+import { PendingPaymentsPanel } from "@/components/admin/PendingPaymentsPanel";
+import { PendingOrderApprovalsPanel } from "@/components/admin/PendingOrderApprovalsPanel";
+import { getAdminPendingPayments, getAdminPendingOrderApprovals } from "@/lib/payable-orders";
 import { Role } from "@prisma/client";
 
-export const revalidate = 30;
+export const revalidate = 60;
 
 async function getDashboardStats() {
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  const chartStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
   const [
     totalProducts,
@@ -30,23 +35,19 @@ async function getDashboardStats() {
     totalOrders,
     totalClients,
     pendingApproval,
-    paidOrders,
     recentOrders,
     catalogProducts,
-    thisMonthOrders,
-    lastMonthOrders,
+    thisMonthRevenue,
+    lastMonthRevenue,
     revenueAgg,
+    avgOrderAgg,
+    chartOrders,
   ] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.productVariation.count({ where: { isActive: true } }),
     prisma.order.count(),
     prisma.user.count({ where: { role: Role.CLIENT, isActive: true } }),
     prisma.order.count({ where: { status: "PENDING_APPROVAL" } }),
-    prisma.order.findMany({
-      where: { paymentStatus: "PAID" },
-      select: { totalPaise: true, createdAt: true },
-      orderBy: { createdAt: "desc" },
-    }),
     prisma.order.findMany({
       include: {
         client: {
@@ -73,39 +74,43 @@ async function getDashboardStats() {
         _count: { select: { variations: true } },
       },
     }),
-    prisma.order.findMany({
+    prisma.order.aggregate({
+      _sum: { totalPaise: true },
       where: { createdAt: { gte: thisMonthStart }, paymentStatus: "PAID" },
-      select: { totalPaise: true },
     }),
-    prisma.order.findMany({
+    prisma.order.aggregate({
+      _sum: { totalPaise: true },
       where: { createdAt: { gte: lastMonthStart, lte: lastMonthEnd }, paymentStatus: "PAID" },
-      select: { totalPaise: true },
     }),
     prisma.order.aggregate({
       _sum: { totalPaise: true },
       where: { paymentStatus: "PAID" },
     }),
+    prisma.order.aggregate({
+      _avg: { totalPaise: true },
+      where: { paymentStatus: "PAID" },
+    }),
+    prisma.order.findMany({
+      where: { paymentStatus: "PAID", createdAt: { gte: chartStart } },
+      select: { totalPaise: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const monthlyRevenue: Record<string, number> = {};
-  paidOrders.forEach((o) => {
+  chartOrders.forEach((o) => {
     const key = new Date(o.createdAt).toLocaleString("en", { month: "short", year: "2-digit" });
     monthlyRevenue[key] = (monthlyRevenue[key] || 0) + o.totalPaise / 100;
   });
 
-  const thisMonthRevenue = thisMonthOrders.reduce((s, o) => s + o.totalPaise, 0);
-  const lastMonthRevenue = lastMonthOrders.reduce((s, o) => s + o.totalPaise, 0);
+  const thisMonthRevenuePaise = thisMonthRevenue._sum.totalPaise || 0;
+  const lastMonthRevenuePaise = lastMonthRevenue._sum.totalPaise || 0;
   const revenueChange =
-    lastMonthRevenue > 0
-      ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100)
-      : thisMonthRevenue > 0
+    lastMonthRevenuePaise > 0
+      ? Math.round(((thisMonthRevenuePaise - lastMonthRevenuePaise) / lastMonthRevenuePaise) * 100)
+      : thisMonthRevenuePaise > 0
         ? 100
         : 0;
-
-  const avgOrderPaise =
-    paidOrders.length > 0
-      ? Math.round(paidOrders.reduce((s, o) => s + o.totalPaise, 0) / paidOrders.length)
-      : 0;
 
   return {
     totalProducts,
@@ -114,9 +119,9 @@ async function getDashboardStats() {
     totalClients,
     pendingApproval,
     totalRevenuePaise: revenueAgg._sum.totalPaise || 0,
-    thisMonthRevenuePaise: thisMonthRevenue,
+    thisMonthRevenuePaise,
     revenueChange,
-    avgOrderPaise,
+    avgOrderPaise: Math.round(avgOrderAgg._avg.totalPaise || 0),
     recentOrders,
     catalogProducts,
     monthlyRevenue: Object.entries(monthlyRevenue).map(([month, revenue]) => ({
@@ -127,8 +132,11 @@ async function getDashboardStats() {
 }
 
 export default async function AdminDashboard() {
-  await requireAdmin();
-  const stats = await getDashboardStats();
+  const [stats, pendingPayments, pendingOrderApprovals] = await Promise.all([
+    getDashboardStats(),
+    getAdminPendingPayments(),
+    getAdminPendingOrderApprovals(),
+  ]);
 
   const statCards = [
     {
@@ -136,128 +144,130 @@ export default async function AdminDashboard() {
       value: formatPaise(stats.totalRevenuePaise),
       sub: `${formatPaise(stats.thisMonthRevenuePaise)} this month`,
       icon: DollarSign,
-      color: "bg-emerald-600",
+      gradient: "bg-gradient-to-br from-emerald-500 to-teal-600",
       badge:
         stats.revenueChange !== 0
           ? `${stats.revenueChange > 0 ? "+" : ""}${stats.revenueChange}% vs last month`
-          : "No prior month data",
-      badgeColor:
-        stats.revenueChange >= 0 ? "text-emerald-600 bg-emerald-50" : "text-red-600 bg-red-50",
+          : "No prior data",
+      badgeTone: (stats.revenueChange >= 0 ? "success" : "warning") as "success" | "warning",
     },
     {
       label: "Orders",
       value: stats.totalOrders.toString(),
       sub: `${stats.pendingApproval} awaiting approval`,
       icon: ShoppingCart,
-      color: "bg-blue-600",
-      badge: stats.pendingApproval > 0 ? "Action needed" : "All caught up",
-      badgeColor:
-        stats.pendingApproval > 0 ? "text-amber-600 bg-amber-50" : "text-emerald-600 bg-emerald-50",
+      gradient: "bg-gradient-to-br from-blue-500 to-indigo-600",
+      badge:
+        pendingPayments.length > 0
+          ? `${pendingPayments.length} payment${pendingPayments.length > 1 ? "s" : ""} to verify`
+          : stats.pendingApproval > 0
+            ? "Action needed"
+            : "All caught up",
+      badgeTone:
+        pendingPayments.length > 0 || stats.pendingApproval > 0
+          ? ("warning" as const)
+          : ("success" as const),
     },
     {
       label: "Catalog",
       value: stats.totalProducts.toString(),
-      sub: `${stats.totalVariations} active variations`,
+      sub: `${stats.totalVariations} active variants`,
       icon: Package,
-      color: "bg-violet-600",
-      badge: "Products & services",
-      badgeColor: "text-gray-600 bg-gray-100",
+      gradient: "bg-gradient-to-br from-violet-500 to-purple-600",
+      badge: "Products & tools",
+      badgeTone: "neutral" as const,
     },
     {
       label: "B2B Clients",
       value: stats.totalClients.toString(),
       sub: `Avg order ${formatPaise(stats.avgOrderPaise)}`,
       icon: Users,
-      color: "bg-orange-600",
+      gradient: "bg-gradient-to-br from-orange-500 to-amber-600",
       badge: "Active accounts",
-      badgeColor: "text-gray-600 bg-gray-100",
+      badgeTone: "neutral" as const,
     },
   ];
 
   const quickActions = [
-    { href: "/admin/products/new", label: "Add Product", desc: "New catalog item" },
-    { href: "/admin/categories/new", label: "Add Category", desc: "Product or service" },
-    { href: "/admin/orders", label: "Manage Orders", desc: "Approve & fulfill" },
-    { href: "/admin/users", label: "Client List", desc: "B2B accounts" },
-    { href: "/admin/settings", label: "Platform Settings", desc: "GST & business info" },
-    { href: "/admin/analytics", label: "Analytics", desc: "Revenue trends" },
+    { href: "/admin/products/new", label: "Add Product", desc: "New catalog item", color: "hover:border-violet-200 hover:bg-violet-50" },
+    { href: "/admin/categories/new", label: "Add Category", desc: "Metal or wood dept", color: "hover:border-blue-200 hover:bg-blue-50" },
+    { href: "/admin/orders", label: "Manage Orders", desc: "Approve & fulfill", color: "hover:border-emerald-200 hover:bg-emerald-50" },
+    { href: "/admin/users", label: "Client List", desc: "B2B accounts", color: "hover:border-orange-200 hover:bg-orange-50" },
+    { href: "/admin/settings", label: "Settings", desc: "GST & business info", color: "hover:border-slate-200 hover:bg-slate-50" },
+    { href: "/admin/analytics", label: "Analytics", desc: "Revenue trends", color: "hover:border-cyan-200 hover:bg-cyan-50" },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">B2B Command Center</h1>
-          <p className="text-gray-500 text-sm">
-            Per-client pricing · prepaid/postpaid orders · GST invoicing
-          </p>
+    <div className="admin-fade-in space-y-6">
+      <div className="admin-hero relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-950 via-brand-800 to-brand-600 p-6 text-white md:p-8">
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute -top-10 right-10 h-40 w-40 rounded-full bg-white blur-3xl animate-float" />
+          <div className="absolute bottom-0 left-1/3 h-32 w-32 rounded-full bg-brand-300 blur-3xl" />
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Clock className="w-4 h-4" />
-          {new Date().toLocaleDateString("en-IN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-brand-200 text-sm">
+              <Sparkles className="h-4 w-4" />
+              B2B Command Center
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Admin Dashboard</h1>
+            <p className="mt-1 text-brand-100 text-sm md:text-base">
+              Per-client pricing · prepaid/postpaid orders · GST invoicing
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm backdrop-blur-sm">
+            <Clock className="h-4 w-4 text-brand-200" />
+            {new Date().toLocaleDateString("en-IN", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+            })}
+          </div>
         </div>
       </div>
 
       {stats.pendingApproval > 0 && (
-        <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+        <div className="admin-slide-up flex items-center gap-3 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4">
+          <AlertCircle className="h-5 w-5 shrink-0 text-amber-600" />
           <div className="flex-1">
-            <p className="font-medium text-amber-900">
+            <p className="font-semibold text-amber-900">
               {stats.pendingApproval} order{stats.pendingApproval > 1 ? "s" : ""} pending approval
             </p>
             <p className="text-sm text-amber-700">Review and approve client orders to proceed.</p>
           </div>
           <Link
-            href="/admin/orders"
-            className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700"
+            href="/admin/orders?filter=pending_approval"
+            className="shrink-0 rounded-xl bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-amber-700 hover:shadow-lg"
           >
             Review Orders
           </Link>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-lg transition-all"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className={`w-10 h-10 ${card.color} rounded-lg flex items-center justify-center`}>
-                <card.icon className="w-5 h-5 text-white" />
-              </div>
-              <span className={`text-xs font-medium px-2 py-1 rounded-full ${card.badgeColor}`}>
-                {card.badge}
-              </span>
-            </div>
-            <div className="text-2xl font-bold text-gray-900">{card.value}</div>
-            <div className="text-sm font-medium text-gray-700 mt-0.5">{card.label}</div>
-            <div className="text-xs text-gray-500 mt-1">{card.sub}</div>
-          </div>
+      <PendingOrderApprovalsPanel orders={pendingOrderApprovals} />
+
+      <PendingPaymentsPanel orders={pendingPayments} />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((card, i) => (
+          <AdminStatCard key={card.label} {...card} delay={i * 80} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900">Revenue by Month</h2>
-            <Link href="/admin/analytics" className="text-xs text-brand-600 hover:underline">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="admin-card lg:col-span-2 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-bold text-slate-900">Revenue by Month</h2>
+            <Link href="/admin/analytics" className="text-xs font-medium text-brand-600 hover:underline">
               Full analytics →
             </Link>
           </div>
-          <RevenueChart data={stats.monthlyRevenue} />
+          <DynamicRevenueChart data={stats.monthlyRevenue} />
         </div>
-        <div className="bg-white rounded-xl border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-gray-900 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-brand-600" /> Latest Catalog
-            </h2>
-            <Link href="/admin/products" className="text-xs text-brand-600 hover:underline">
+        <div className="admin-card rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-bold text-slate-900">Latest Catalog</h2>
+            <Link href="/admin/products" className="text-xs font-medium text-brand-600 hover:underline">
               Manage
             </Link>
           </div>
@@ -265,10 +275,10 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-gray-900">Recent Orders</h2>
-          <Link href="/admin/orders" className="text-sm text-brand-600 hover:underline">
+      <div className="admin-card rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-bold text-slate-900">Recent Orders</h2>
+          <Link href="/admin/orders" className="text-sm font-medium text-brand-600 hover:underline">
             View all
           </Link>
         </div>
@@ -276,18 +286,22 @@ export default async function AdminDashboard() {
       </div>
 
       <div>
-        <h2 className="font-bold text-gray-900 mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {quickActions.map((action) => (
+        <h2 className="mb-3 font-bold text-slate-900">Quick Actions</h2>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+          {quickActions.map((action, i) => (
             <Link
               key={action.href}
               href={action.href}
-              className="bg-white rounded-xl border p-4 hover:shadow-md hover:border-brand-200 transition-all group"
+              className={`admin-card group rounded-2xl border border-slate-100 bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${action.color}`}
+              style={{ animationDelay: `${i * 50}ms` }}
             >
-              <div className="text-sm font-semibold text-gray-900 group-hover:text-brand-700">
-                {action.label}
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-slate-900 group-hover:text-brand-700">
+                  {action.label}
+                </div>
+                <ArrowRight className="h-3.5 w-3.5 text-slate-300 transition-all group-hover:translate-x-1 group-hover:text-brand-500" />
               </div>
-              <div className="text-xs text-gray-500 mt-1">{action.desc}</div>
+              <div className="mt-1 text-xs text-slate-500">{action.desc}</div>
             </Link>
           ))}
         </div>

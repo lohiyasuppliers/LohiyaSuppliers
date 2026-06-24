@@ -1,9 +1,11 @@
-export default function StoreLoading() {
+export default function Loading() {
   return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-3 border-brand-200 border-t-brand-600 rounded-full animate-spin" />
-        <p className="text-sm text-gray-500">Loading...</p>
+    <div className="max-w-7xl mx-auto px-4 py-16">
+      <div className="h-10 w-48 bg-gray-100 rounded-lg animate-pulse mb-8" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="aspect-square bg-gray-100 rounded-2xl animate-pulse" />
+        ))}
       </div>
     </div>
   );

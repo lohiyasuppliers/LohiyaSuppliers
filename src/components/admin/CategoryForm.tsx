@@ -3,15 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
-import { ApplicationType, CategoryType } from "@prisma/client";
+import { ApplicationType, CategoryType } from "@/lib/catalog-shared";
 
 interface ParentOption {
   id: string;
   name: string;
+  application: ApplicationType;
 }
 
 interface CategoryFormProps {
   parentOptions: ParentOption[];
+  defaultParentId?: string;
   initial?: {
     id: string;
     name: string;
@@ -26,16 +28,17 @@ interface CategoryFormProps {
   };
 }
 
-export function CategoryForm({ parentOptions, initial }: CategoryFormProps) {
+export function CategoryForm({ parentOptions, defaultParentId, initial }: CategoryFormProps) {
   const router = useRouter();
+  const defaultParent = parentOptions.find((p) => p.id === defaultParentId);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: initial?.name || "",
     slug: initial?.slug || "",
     description: initial?.description || "",
     type: initial?.type || CategoryType.PRODUCT,
-    application: initial?.application || ApplicationType.BOTH,
-    parentId: initial?.parentId || "",
+    application: initial?.application || defaultParent?.application || ApplicationType.BOTH,
+    parentId: initial?.parentId || defaultParentId || "",
     imageUrl: initial?.imageUrl || "",
     sortOrder: initial?.sortOrder?.toString() || "0",
     isActive: initial?.isActive ?? true,
@@ -120,7 +123,14 @@ export function CategoryForm({ parentOptions, initial }: CategoryFormProps) {
         <label className="text-sm font-medium block mb-1">Parent Department</label>
         <select
           value={form.parentId}
-          onChange={(e) => setForm({ ...form, parentId: e.target.value })}
+          onChange={(e) => {
+            const parent = parentOptions.find((p) => p.id === e.target.value);
+            setForm({
+              ...form,
+              parentId: e.target.value,
+              application: parent?.application ?? form.application,
+            });
+          }}
           className="w-full px-3 py-2 border rounded-lg text-sm"
         >
           <option value="">None (top-level department)</option>

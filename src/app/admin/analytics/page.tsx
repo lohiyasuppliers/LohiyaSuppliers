@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatPaise } from "@/lib/utils";
-import { RevenueChart } from "@/components/admin/RevenueChart";
+import { DynamicRevenueChart } from "@/components/admin/DynamicRevenueChart";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { BarChart3, TrendingUp, Package, Users } from "lucide-react";
 import { Role } from "@prisma/client";
 
@@ -8,7 +9,7 @@ export const metadata = { title: "Analytics" };
 export const revalidate = 60;
 
 export default async function AdminAnalyticsPage() {
-  const [orders, products, clients, topProducts] = await Promise.all([
+  const [orders, products, clients, topProducts, allClients] = await Promise.all([
     prisma.order.findMany({
       where: { paymentStatus: "PAID" },
       select: { totalPaise: true, createdAt: true },
@@ -20,6 +21,16 @@ export default async function AdminAnalyticsPage() {
       _sum: { quantity: true },
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
+    }),
+    prisma.user.findMany({
+      where: { role: Role.CLIENT },
+      include: {
+        clientProfile: { select: { company: true, billingState: true } },
+        orders: { where: { paymentStatus: "PAID" }, select: { totalPaise: true } },
+        _count: { select: { orders: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
     }),
   ]);
 
@@ -47,9 +58,22 @@ export default async function AdminAnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-500 text-sm">B2B revenue and catalog performance</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-500 text-sm">B2B revenue, catalog performance & client insights</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <CsvDownloadButton
+            href="/api/admin/analytics/export"
+            label="Download Analytics (CSV)"
+          />
+          <CsvDownloadButton
+            href="/api/admin/users/export"
+            label="Download Clients (CSV)"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 text-brand-700 bg-white rounded-lg text-sm font-medium hover:bg-brand-50"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -90,7 +114,7 @@ export default async function AdminAnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl border p-6">
           <h2 className="font-bold mb-4">Revenue Trend</h2>
-          <RevenueChart
+          <DynamicRevenueChart
             data={Object.entries(monthlyRevenue).map(([month, revenue]) => ({ month, revenue }))}
           />
         </div>
@@ -112,6 +136,40 @@ export default async function AdminAnalyticsPage() {
               <p className="text-sm text-gray-500 text-center py-4">No sales data yet</p>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl border p-6">
+        <h2 className="font-bold mb-4">Client Overview</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="text-left px-3 py-2 font-medium text-gray-600">Client</th>
+                <th className="text-left px-3 py-2 font-medium text-gray-600">Company</th>
+                <th className="text-left px-3 py-2 font-medium text-gray-600">State</th>
+                <th className="text-left px-3 py-2 font-medium text-gray-600">Orders</th>
+                <th className="text-right px-3 py-2 font-medium text-gray-600">Total Spent</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {allClients.map((c) => {
+                const spent = c.orders.reduce((s, o) => s + o.totalPaise, 0);
+                return (
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{c.name || c.email}</div>
+                      <div className="text-xs text-gray-500">{c.email}</div>
+                    </td>
+                    <td className="px-3 py-2">{c.clientProfile?.company || "—"}</td>
+                    <td className="px-3 py-2">{c.clientProfile?.billingState || "—"}</td>
+                    <td className="px-3 py-2">{c._count.orders}</td>
+                    <td className="px-3 py-2 text-right font-medium">{formatPaise(spent)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

@@ -4,12 +4,14 @@ import { requireAdminApi } from "@/lib/admin-api";
 import { formatDate, formatPaise } from "@/lib/utils";
 import { Role } from "@prisma/client";
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdminApi();
   if (!auth.authorized) return auth.response;
 
+  const userId = new URL(req.url).searchParams.get("userId");
+
   const users = await prisma.user.findMany({
-    where: { role: Role.CLIENT },
+    where: { role: Role.CLIENT, ...(userId ? { id: userId } : {}) },
     include: {
       clientProfile: true,
       _count: { select: { orders: true } },
@@ -29,6 +31,9 @@ export async function GET() {
     "Company",
     "GSTIN",
     "Billing State",
+    "Address",
+    "City",
+    "Pincode",
     "Status",
     "Orders",
     "Total Spent",
@@ -45,6 +50,9 @@ export async function GET() {
       u.clientProfile?.company || "",
       u.clientProfile?.gstin || "",
       u.clientProfile?.billingState || "",
+      u.clientProfile?.address || "",
+      u.clientProfile?.city || "",
+      u.clientProfile?.pincode || "",
       u.isActive ? "Active" : "Inactive",
       u._count.orders,
       formatPaise(totalSpent).replace("₹", ""),

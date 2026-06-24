@@ -1,25 +1,50 @@
 import { prisma } from "@/lib/prisma";
-import { formatPaise, formatDate, getStatusColor } from "@/lib/utils";
+import { formatPaise, getOrderStatusLabel, getStatusColor } from "@/lib/utils";
+import { orderBalancePaise } from "@/lib/payable-orders";
 import Link from "next/link";
-import { OrderStatusUpdater } from "@/components/admin/OrderStatusUpdater";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
+import { AdminOrdersList, type AdminOrderRow } from "@/components/admin/AdminOrdersList";
+import { ClipboardList, IndianRupee, Clock, AlertTriangle } from "lucide-react";
 
 export const metadata = { title: "Orders" };
 export const revalidate = 15;
 
-export default async function AdminOrdersPage() {
-  const orders = await prisma.order.findMany({
-    include: {
-      client: {
-        select: {
-          name: true,
-          email: true,
-          clientProfile: { select: { company: true } },
+interface Props {
+  searchParams: Promise<{ filter?: string }>;
+}
+
+export default async function AdminOrdersPage({ searchParams }: Props) {
+  const { filter } = await searchParams;
+  const pendingPaymentOnly = filter === "pending_payment";
+  const pendingApprovalOnly = filter === "pending_approval";
+
+  const [orders, pendingPaymentCount, pendingApprovalCount, totalCollected] = await Promise.all([
+    prisma.order.findMany({
+      where: pendingPaymentOnly
+        ? { pendingPaymentPaise: { gt: 0 }, paymentStatus: "PENDING_VERIFICATION" }
+        : pendingApprovalOnly
+          ? { status: "PENDING_APPROVAL" }
+          : undefined,
+      include: {
+        client: {
+          select: {
+            name: true,
+            email: true,
+            clientProfile: { select: { company: true } },
+          },
         },
       },
-      items: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    }),
+    prisma.order.count({
+      where: { pendingPaymentPaise: { gt: 0 }, paymentStatus: "PENDING_VERIFICATION" },
+    }),
+    prisma.order.count({ where: { status: "PENDING_APPROVAL" } }),
+    prisma.order.aggregate({
+      _sum: { paidPaise: true },
+    }),
+  ]);
 
   const statusCounts = orders.reduce(
     (acc, o) => {
@@ -29,74 +54,119 @@ export default async function AdminOrdersPage() {
     {} as Record<string, number>
   );
 
+  const rows: AdminOrderRow[] = orders.map((order) => ({
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+    totalPaise: order.totalPaise,
+    paidPaise: order.paidPaise,
+    pendingPaymentPaise: order.pendingPaymentPaise,
+    balanceDue: orderBalancePaise(order),
+    createdAt: order.createdAt.toISOString(),
+    clientName: order.client?.clientProfile?.company || order.client?.name || "—",
+    clientEmail: order.client?.email || "",
+  }));
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
-        <p className="text-gray-500 text-sm">
-          {orders.length} orders · approve prepaid/postpaid B2B orders
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4 animate-fade-in-up">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <ClipboardList className="w-7 h-7 text-brand-600" />
+            Order Management
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {orders.length} orders shown · {formatPaise(totalCollected._sum.paidPaise ?? 0)} total
+            collected
+          </p>
+        </div>
+        <CsvDownloadButton href="/api/admin/orders/export" label="Download Orders (CSV)" />
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        {Object.entries(statusCounts).map(([status, count]) => (
-          <div key={status} className={`px-4 py-2 rounded-lg text-sm ${getStatusColor(status)}`}>
-            {status.replace(/_/g, " ")}: <strong>{count}</strong>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 stagger-children">
+        <div className="rounded-xl border bg-white p-4 shadow-sm card-hover">
+          <div className="flex items-center gap-2 text-gray-500 text-xs font-semibold uppercase">
+            <IndianRupee className="w-4 h-4" /> Collected
           </div>
-        ))}
+          <p className="text-2xl font-bold text-emerald-700 mt-1">
+            {formatPaise(totalCollected._sum.paidPaise ?? 0)}
+          </p>
+        </div>
+        <Link
+          href="/admin/orders?filter=pending_approval"
+          className="rounded-xl border bg-amber-50 border-amber-100 p-4 shadow-sm card-hover block"
+        >
+          <div className="flex items-center gap-2 text-amber-700 text-xs font-semibold uppercase">
+            <AlertTriangle className="w-4 h-4" /> Awaiting approval
+          </div>
+          <p className="text-2xl font-bold text-amber-900 mt-1">{pendingApprovalCount}</p>
+        </Link>
+        <Link
+          href="/admin/orders?filter=pending_payment"
+          className="rounded-xl border bg-violet-50 border-violet-100 p-4 shadow-sm card-hover block"
+        >
+          <div className="flex items-center gap-2 text-violet-700 text-xs font-semibold uppercase">
+            <Clock className="w-4 h-4" /> Pending payments
+          </div>
+          <p className="text-2xl font-bold text-violet-900 mt-1">{pendingPaymentCount}</p>
+        </Link>
       </div>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Order</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Client</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Items</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Total</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Payment</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {orders.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
-                  No orders yet
-                </td>
-              </tr>
-            ) : (
-              orders.map((order) => (
-                <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-brand-700">
-                    <Link href={`/admin/orders/${order.id}`}>{order.orderNumber}</Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>{order.client?.clientProfile?.company || order.client?.name}</div>
-                    <div className="text-xs text-gray-500">{order.client?.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{order.orderType}</td>
-                  <td className="px-4 py-3 text-gray-600">{order.items.length}</td>
-                  <td className="px-4 py-3 font-medium">{formatPaise(order.totalPaise)}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(order.paymentStatus)}`}
-                    >
-                      {order.paymentStatus}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <OrderStatusUpdater orderId={order.id} currentStatus={order.status} />
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(order.createdAt)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href="/admin/orders"
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+            !pendingPaymentOnly && !pendingApprovalOnly
+              ? "bg-brand-600 text-white border-brand-600 shadow-md"
+              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          All orders
+        </Link>
+        <Link
+          href="/admin/orders?filter=pending_approval"
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+            pendingApprovalOnly
+              ? "bg-amber-600 text-white border-amber-600 shadow-md"
+              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          Awaiting approval{pendingApprovalCount > 0 ? ` (${pendingApprovalCount})` : ""}
+        </Link>
+        <Link
+          href="/admin/orders?filter=pending_payment"
+          className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+            pendingPaymentOnly
+              ? "bg-violet-600 text-white border-violet-600 shadow-md"
+              : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+          }`}
+        >
+          Pending payments{pendingPaymentCount > 0 ? ` (${pendingPaymentCount})` : ""}
+        </Link>
       </div>
+
+      {!pendingPaymentOnly && !pendingApprovalOnly && (
+        <div className="flex flex-wrap gap-3 animate-fade-in">
+          {Object.entries(statusCounts).map(([status, count]) => (
+            <div key={status} className={`px-4 py-2 rounded-lg text-sm ${getStatusColor(status)}`}>
+              {getOrderStatusLabel(status)}: <strong>{count}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {orders.length === 0 ? (
+        <div className="bg-white rounded-xl border p-12 text-center text-gray-500 animate-fade-in">
+          {pendingApprovalOnly
+            ? "No orders awaiting approval"
+            : pendingPaymentOnly
+              ? "No payments awaiting verification"
+              : "No orders yet"}
+        </div>
+      ) : (
+        <AdminOrdersList orders={rows} />
+      )}
     </div>
   );
 }

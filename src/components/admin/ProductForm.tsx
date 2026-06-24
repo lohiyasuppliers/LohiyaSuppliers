@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugify, parseJSON } from "@/lib/utils";
+import { generateVariationSku } from "@/lib/sku";
+import { DEFAULT_GST_RATE_PERCENT } from "@/lib/constants";
 import { ImageUpload } from "./ImageUpload";
 import { VariationManager, VariationDraft } from "./VariationManager";
 
@@ -46,7 +48,6 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
     brand: initialData?.brand || "Deerfros",
     description: initialData?.description || "",
     hsnCode: initialData?.hsnCode || "6804",
-    gstPercent: initialData ? (initialData.gstRateBps / 100).toString() : "18",
     priceRupees: initialData ? (initialData.defaultPricePaise / 100).toString() : "",
     categoryId: initialData?.categoryId || categories.find((c) => c.parentId)?.id || categories[0]?.id || "",
     isActive: initialData?.isActive ?? true,
@@ -68,7 +69,7 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
         brand: form.brand || null,
         description: form.description,
         hsnCode: form.hsnCode,
-        gstRateBps: Math.round(parseFloat(form.gstPercent) * 100),
+        gstRateBps: DEFAULT_GST_RATE_PERCENT * 100,
         defaultPriceRupees: parseFloat(form.priceRupees),
         categoryId: form.categoryId,
         isActive: form.isActive,
@@ -79,10 +80,14 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
     if (res.ok) {
       const product = await res.json();
       if (variations.length > 0) {
+        const withSkus = variations.map((v, i) => ({
+          ...v,
+          sku: v.sku || generateVariationSku(form.brand, form.slug, v.attributes, i),
+        }));
         await fetch(`/api/admin/products/${product.id}/variations`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ variations }),
+          body: JSON.stringify({ variations: withSkus }),
         });
       }
       router.push("/admin/products");
@@ -144,23 +149,12 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium block mb-1">HSN Code *</label>
+            <label className="text-sm font-medium block mb-1">GST Rate</label>
             <input
-              required
-              value={form.hsnCode}
-              onChange={(e) => setForm({ ...form, hsnCode: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium block mb-1">GST Rate (%) *</label>
-            <input
-              required
-              type="number"
-              step="0.01"
-              value={form.gstPercent}
-              onChange={(e) => setForm({ ...form, gstPercent: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
+              readOnly
+              type="text"
+              value={`${DEFAULT_GST_RATE_PERCENT}% (fixed)`}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 text-gray-600"
             />
           </div>
           <div>
@@ -209,6 +203,8 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
 
       <VariationManager
         productId={initialData?.id}
+        productSlug={form.slug}
+        brand={form.brand}
         variations={variations}
         onChange={setVariations}
       />

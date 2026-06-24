@@ -7,6 +7,7 @@ const SETTING_FIELDS = [
   { key: "business_name", label: "Business Name", type: "text" },
   { key: "business_gstin", label: "Business GSTIN", type: "text" },
   { key: "business_state", label: "Business State (for GST)", type: "text" },
+  { key: "business_address", label: "Business Address", type: "text" },
   { key: "contact_email", label: "Contact Email", type: "email" },
   { key: "contact_phone", label: "Contact Phone", type: "text" },
   {

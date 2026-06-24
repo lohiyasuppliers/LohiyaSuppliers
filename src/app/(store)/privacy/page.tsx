@@ -17,14 +17,15 @@ export default function PrivacyPage() {
         <h2 className="text-lg font-bold text-gray-900 pt-4">How We Use Your Information</h2>
         <ul className="list-disc pl-5 space-y-1">
           <li>Process and fulfill B2B orders</li>
-          <li>Generate GST invoices and shipping documents</li>
+          <li>Process orders and deliver products</li>
+          <li>Generate bills and shipping documents</li>
           <li>Respond to bulk order and repair service inquiries</li>
           <li>Send order confirmations and business communications</li>
         </ul>
         <h2 className="text-lg font-bold text-gray-900 pt-4">Data Security</h2>
         <p>We use industry-standard security measures including encrypted connections for payment and account data. Passwords are securely hashed and never stored in plain text.</p>
         <h2 className="text-lg font-bold text-gray-900 pt-4">Contact</h2>
-        <p>For privacy-related questions, contact us at <a href="mailto:info@lohiyasuppliers.com" className="text-brand-600">info@lohiyasuppliers.com</a>.</p>
+        <p>For privacy-related questions, contact us at <a href="mailto:lohiyasuppliers@gmail.com" className="text-brand-600">lohiyasuppliers@gmail.com</a>.</p>
       </div>
     </div>
   );

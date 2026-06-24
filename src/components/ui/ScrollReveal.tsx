@@ -1,58 +1,30 @@
-"use client";
+import { Reveal } from "@/components/motion/Reveal";
+import type { ComponentProps } from "react";
 
-import { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
-
-interface ScrollRevealProps {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
+type ScrollRevealProps = Omit<ComponentProps<typeof Reveal>, "as"> & {
+  /** @deprecated use direction on Reveal */
   direction?: "up" | "left" | "right" | "none";
-}
+};
 
+/** Scroll-triggered reveal — animates when section enters viewport. */
 export function ScrollReveal({
   children,
   className,
   delay = 0,
   direction = "up",
 }: ScrollRevealProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const transforms = {
-    up: "translateY(32px)",
-    left: "translateX(-32px)",
-    right: "translateX(32px)",
-    none: "none",
-  };
+  const mapped =
+    direction === "left"
+      ? "left"
+      : direction === "right"
+        ? "right"
+        : direction === "none"
+          ? "none"
+          : "up";
 
   return (
-    <div
-      ref={ref}
-      className={cn("transition-all duration-700 ease-out", className)}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? "none" : transforms[direction],
-        transitionDelay: `${delay}ms`,
-      }}
-    >
+    <Reveal className={className} delay={delay} direction={mapped}>
       {children}
-    </div>
+    </Reveal>
   );
 }

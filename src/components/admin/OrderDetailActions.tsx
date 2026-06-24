@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ORDER_STATUSES, PAYMENT_STATUSES } from "@/lib/utils";
+import { ORDER_STATUSES, PAYMENT_STATUSES, getOrderStatusLabel } from "@/lib/utils";
 import { CheckCircle, Loader2 } from "lucide-react";
 
 export function OrderDetailActions({
@@ -81,7 +81,11 @@ export function OrderDetailActions({
         <label className="text-sm font-medium text-gray-700 block mb-1">Order Status</label>
         <select value={status} onChange={(e) => update("status", e.target.value)} disabled={saving}
           className="w-full px-3 py-2 border rounded-lg text-sm">
-          {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          {ORDER_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {getOrderStatusLabel(s)}
+            </option>
+          ))}
         </select>
       </div>
       <div>

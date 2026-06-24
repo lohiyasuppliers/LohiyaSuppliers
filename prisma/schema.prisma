@@ -32,8 +32,8 @@ enum OrderType {
 
 enum OrderStatus {
   PENDING_APPROVAL
-  APPROVED
-  FULFILLED
+  APPROVED_PAID
+  APPROVED_UNPAID
   COMPLETED
   REJECTED
   CANCELLED
@@ -41,7 +41,9 @@ enum OrderStatus {
 
 enum PaymentStatus {
   UNPAID
+  PARTIAL
   PAID
+  PENDING_VERIFICATION
   FAILED
   REFUNDED
 }
@@ -66,17 +68,31 @@ enum CashbackLedgerType {
   EARNED
   REDEEMED_BILL
   REDEEMED_AMAZON
+  REDEEMED_UPI
 }
 
 enum CashbackRedemptionType {
   NEXT_BILL
   AMAZON_VOUCHER
+  UPI
 }
 
 enum RedemptionStatus {
   PENDING
   FULFILLED
   CANCELLED
+}
+
+enum CashbackWalletStatus {
+  LOCKED
+  AVAILABLE
+  REDEEMED
+  EXPIRED
+}
+
+enum CashbackWalletSource {
+  ORDER
+  ADMIN
 }
 
 // Sentinel for product-level price/cashback overrides (no variation)
@@ -100,9 +116,13 @@ model User {
   priceOverrides      ClientPriceOverride[]
   orders              Order[]
   cashbackRules       CashbackRule[]
+  productDiscountRules ProductDiscountRule[]
   cashbackLedger      CashbackLedgerEntry[]
   vouchers            ClientVoucher[]
   cashbackRedemptions CashbackRedemption[]
+  clientBills         ClientBill[]
+  discountRules       ClientDiscountRule[]
+  cashbackWallet      CashbackWalletEntry[]
 }
 
 model ClientProfile {
@@ -154,8 +174,8 @@ model Product {
   slug              String   @unique
   brand             String?
   description       String
-  hsnCode           String
-  gstRateBps        Int      // basis points: 1800 = 18%
+  hsnCode           String   @default("")
+  gstRateBps        Int      @default(1800) // basis points: 1800 = 18%
   defaultPricePaise Int
   images            String   @default("[]")
   isActive          Boolean  @default(true)
@@ -165,8 +185,13 @@ model Product {
   variations     ProductVariation[]
   priceOverrides ClientPriceOverride[]
   cashbackRules  CashbackRule[]
+  productDiscountRules ProductDiscountRule[]
   orderItems     OrderItem[]
   vouchers       ClientVoucher[]
+
+  @@index([isActive])
+  @@index([categoryId, isActive])
+  @@index([brand])
 }
 
 model ProductVariation {
@@ -182,9 +207,11 @@ model ProductVariation {
   updatedAt           DateTime @updatedAt
 
   orderItems     OrderItem[]
+
+  @@index([productId, isActive])
 }
 
-// variationId on ClientPriceOverride / CashbackRule uses "__product__" sentinel OR a variation id (no FK)
+// variationId on ClientPriceOverride
 
 // ─── Per-client pricing ──────────────────────────────────────────────────────
 
@@ -202,6 +229,7 @@ model ClientPriceOverride {
 
   @@unique([clientId, productId, variationId])
   @@index([clientId])
+  @@index([clientId, productId])
 }
 
 // ─── Orders & payments ───────────────────────────────────────────────────────
@@ -214,6 +242,9 @@ model Order {
   orderType            OrderType
   status               OrderStatus   @default(PENDING_APPROVAL)
   paymentStatus        PaymentStatus @default(UNPAID)
+  paidPaise            Int           @default(0)
+  pendingPaymentPaise  Int           @default(0)
+  paymentProof         String?
   razorpayOrderId      String?
   razorpayPaymentId    String?
   subtotalPaise        Int
@@ -221,6 +252,8 @@ model Order {
   discountPaise        Int           @default(0)
   voucherDiscountPaise Int           @default(0)
   cashbackAppliedPaise Int           @default(0)
+  walletAppliedPaise   Int           @default(0)
+  cashbackEarnedPaise  Int           @default(0)
   totalPaise           Int
   shippingAddress      Json
   billingAddress       Json?
@@ -230,12 +263,13 @@ model Order {
   approvedAt           DateTime?
   approvedById         String?
   rejectionReason      String?
+  adminComment         String?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
   items            OrderItem[]
-  invoice          Invoice?
   cashbackLedger   CashbackLedgerEntry[]
+  cashbackWallet   CashbackWalletEntry[]
 }
 
 model OrderItem {
@@ -248,32 +282,75 @@ model OrderItem {
   variation       ProductVariation? @relation(fields: [variationId], references: [id])
   productName     String
   variationLabel  String?
-  hsnCode         String
+  hsnCode         String            @default("")
   gstRateBps      Int
   quantity        Int
   unitPricePaise  Int
   totalPaise      Int
 }
 
-// ─── GST invoicing ───────────────────────────────────────────────────────────
+// ─── Admin-generated client bills ────────────────────────────────────────────
 
-model Invoice {
-  id              String   @id @default(cuid())
-  orderId         String   @unique
-  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  invoiceNumber   String   @unique
-  clientGstin     String?
-  businessGstin   String
-  businessState   String
-  clientState     String
-  isInterState    Boolean
-  taxablePaise    Int
-  cgstPaise       Int      @default(0)
-  sgstPaise       Int      @default(0)
-  igstPaise       Int      @default(0)
-  totalPaise      Int
-  lineItems       Json
-  createdAt       DateTime @default(now())
+model ClientBill {
+  id          String   @id @default(cuid())
+  clientId    String
+  client      User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  billNumber  String
+  title       String?
+  description String?
+  fileUrl     String?
+  amountPaise Int?
+  billDate    DateTime @default(now())
+  orderId     String?
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+// ─── Per-client discounts & cashback wallet ──────────────────────────────────
+
+model ClientDiscountRule {
+  id               String       @id @default(cuid())
+  clientId         String
+  client           User         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title            String       @default("Order discount")
+  type             DiscountType
+  valuePaise       Int?
+  valueBps         Int?
+  minOrderPaise    Int          @default(0)
+  maxDiscountPaise Int?
+  isActive         Boolean      @default(true)
+  expiresAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([clientId, isActive])
+}
+
+model CashbackWalletEntry {
+  id               String                 @id @default(cuid())
+  clientId         String
+  client           User                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  orderId          String?
+  order            Order?                 @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  amountPaise      Int
+  status           CashbackWalletStatus   @default(LOCKED)
+  source           CashbackWalletSource   @default(ORDER)
+  earnedAt         DateTime               @default(now())
+  unlockedAt       DateTime?
+  expiresAt        DateTime
+  redeemedAt       DateTime?
+  redemptionType   CashbackRedemptionType?
+  adminNote        String?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  @@index([clientId, status])
+  @@index([orderId])
+  @@index([expiresAt])
 }
 
 // ─── Cashback ────────────────────────────────────────────────────────────────
@@ -295,6 +372,23 @@ model CashbackRule {
   @@unique([clientId, productId, variationId])
 }
 
+model ProductDiscountRule {
+  id          String       @id @default(cuid())
+  clientId    String
+  client      User         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variationId String       @default("__product__")
+  type        DiscountType @default(FIXED)
+  valuePaise  Int?
+  valueBps    Int?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([clientId, productId, variationId])
+}
+
 model CashbackLedgerEntry {
   id                String             @id @default(cuid())
   clientId          String
@@ -311,16 +405,23 @@ model CashbackLedgerEntry {
 }
 
 model CashbackRedemption {
-  id          String                 @id @default(cuid())
-  clientId    String
-  client      User                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  type        CashbackRedemptionType
-  amountPaise Int
-  status      RedemptionStatus       @default(PENDING)
-  amazonCode  String?
-  orderId     String?
-  createdAt   DateTime               @default(now())
-  fulfilledAt DateTime?
+  id              String                 @id @default(cuid())
+  clientId        String
+  client          User                   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type            CashbackRedemptionType
+  amountPaise     Int
+  status          RedemptionStatus       @default(PENDING)
+  upiId           String?
+  clientNote      String?
+  adminComment    String?
+  paymentProof    String?
+  rejectionReason String?
+  amazonCode      String?
+  orderId         String?
+  createdAt       DateTime               @default(now())
+  fulfilledAt     DateTime?
+
+  @@index([clientId, status])
 }
 
 // ─── Per-client vouchers ─────────────────────────────────────────────────────

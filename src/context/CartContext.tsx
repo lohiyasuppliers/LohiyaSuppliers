@@ -9,6 +9,19 @@ interface CartContextType {
   addItem: (item: Omit<CartItem, "quantity" | "cartKey">, quantity?: number) => void;
   removeItem: (cartKey: string) => void;
   updateQuantity: (cartKey: string, quantity: number) => void;
+  syncPrices: (
+    lines: Array<{
+      productId: string;
+      variationId?: string;
+      pricePaise: number;
+      name: string;
+      slug: string;
+      sku: string;
+      gstRateBps: number;
+      variationLabel?: string;
+      image?: string;
+    }>
+  ) => void;
   clearCart: () => void;
   totalItems: number;
   subtotalPaise: number;
@@ -73,6 +86,55 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = useCallback(() => setItems([]), []);
 
+  const syncPrices = useCallback(
+    (
+      lines: Array<{
+        productId: string;
+        variationId?: string;
+        pricePaise: number;
+        name: string;
+        slug: string;
+        sku: string;
+        gstRateBps: number;
+        variationLabel?: string;
+        image?: string;
+      }>
+    ) => {
+      setItems((prev) => {
+        let changed = false;
+        const next = prev.map((item) => {
+          const line = lines.find(
+            (l) =>
+              l.productId === item.productId &&
+              (l.variationId || undefined) === (item.variationId || undefined)
+          );
+          if (!line) return item;
+          if (
+            item.pricePaise === line.pricePaise &&
+            item.name === line.name &&
+            item.sku === line.sku &&
+            item.gstRateBps === line.gstRateBps
+          ) {
+            return item;
+          }
+          changed = true;
+          return {
+            ...item,
+            pricePaise: line.pricePaise,
+            name: line.name,
+            slug: line.slug,
+            sku: line.sku,
+            gstRateBps: line.gstRateBps,
+            variationLabel: line.variationLabel,
+            image: line.image ?? item.image,
+          };
+        });
+        return changed ? next : prev;
+      });
+    },
+    []
+  );
+
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const subtotalPaise = items.reduce((sum, i) => sum + i.pricePaise * i.quantity, 0);
 
@@ -83,6 +145,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         addItem,
         removeItem,
         updateQuantity,
+        syncPrices,
         clearCart,
         totalItems,
         subtotalPaise,

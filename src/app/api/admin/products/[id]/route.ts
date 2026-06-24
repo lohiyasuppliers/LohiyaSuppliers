@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { slugify } from "@/lib/utils";
 import { rupeesToPaise } from "@/lib/money";
+import { DEFAULT_GST_RATE_BPS } from "@/lib/constants";
+import { syncProductDefaultPriceFromVariations } from "@/lib/product-price";
+import { revalidateProductCatalog } from "@/lib/revalidate-catalog";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -20,7 +23,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       description: body.description,
       categoryId: body.categoryId,
       hsnCode: body.hsnCode,
-      gstRateBps: body.gstRateBps,
+      gstRateBps: DEFAULT_GST_RATE_BPS,
       defaultPricePaise:
         body.defaultPriceRupees != null
           ? rupeesToPaise(Number(body.defaultPriceRupees))
@@ -29,6 +32,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       isActive: body.isActive,
     },
   });
+
+  await syncProductDefaultPriceFromVariations(id);
+  revalidateProductCatalog();
 
   return NextResponse.json(product);
 }
@@ -39,5 +45,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
 
   const { id } = await params;
   await prisma.product.delete({ where: { id } });
+  revalidateProductCatalog();
   return NextResponse.json({ success: true });
 }

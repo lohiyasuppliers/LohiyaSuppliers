@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { rupeesToPaise } from "@/lib/money";
+import { generateVariationSku } from "@/lib/sku";
+import { sanitizeAttributes } from "@/lib/attributes";
+import { syncProductDefaultPriceFromVariations } from "@/lib/product-price";
+import { revalidateProductCatalog } from "@/lib/revalidate-catalog";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -13,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     orderBy: { sku: "asc" },
   });
   return NextResponse.json(variations);
-}
+ }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -41,10 +45,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     });
   }
 
-  for (const v of variations) {
+  for (let i = 0; i < variations.length; i++) {
+    const v = variations[i];
+    const attrs = sanitizeAttributes(v.attributes || {});
+    const sku =
+      v.sku?.trim() ||
+      generateVariationSku(product.brand, product.slug, attrs, i);
     const data = {
-      sku: v.sku,
-      attributes: v.attributes || {},
+      sku,
+      attributes: attrs,
       defaultPricePaise: v.priceRupees != null && v.priceRupees !== ""
         ? rupeesToPaise(Number(v.priceRupees))
         : null,
@@ -63,5 +72,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     where: { productId: id },
     orderBy: { sku: "asc" },
   });
+
+  await syncProductDefaultPriceFromVariations(id);
+  revalidateProductCatalog();
+
   return NextResponse.json(updated);
 }

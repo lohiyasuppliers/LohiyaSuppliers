@@ -1,4 +1,4 @@
 import { redirect } from "next/navigation";
-export default function LegacyAdminPage() {
-  redirect("/admin");
+export default function LegacyBannerEditPage() {
+  redirect("/admin/banners");
 }

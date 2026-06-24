@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { slugify } from "@/lib/utils";
 import { rupeesToPaise } from "@/lib/money";
+import { DEFAULT_GST_RATE_BPS } from "@/lib/constants";
+import { revalidateProductCatalog } from "@/lib/revalidate-catalog";
 
 export async function POST(req: Request) {
   const auth = await requireAdminApi();
@@ -23,13 +25,14 @@ export async function POST(req: Request) {
       description: body.description || "",
       categoryId: body.categoryId,
       hsnCode: body.hsnCode,
-      gstRateBps: body.gstRateBps ?? 1800,
+      gstRateBps: body.gstRateBps ?? DEFAULT_GST_RATE_BPS,
       defaultPricePaise: rupeesToPaise(Number(body.defaultPriceRupees)),
       images: body.images || "[]",
       isActive: body.isActive ?? true,
     },
   });
 
+  revalidateProductCatalog();
   return NextResponse.json(product);
 }
 

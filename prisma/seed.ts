@@ -142,7 +142,7 @@ async function seedCatalog() {
             brand: item.brand,
             description: item.description,
             hsnCode: item.hsnCode,
-            gstRateBps: 1800,
+            gstRateBps: 1800, // 18% — see DEFAULT_GST_RATE_BPS in src/lib/constants.ts
             defaultPricePaise: rupeesToPaise(item.basePriceRupees),
             images: JSON.stringify(item.images),
             categoryId: subcategory.id,
@@ -174,58 +174,65 @@ async function seedCatalog() {
   return { productCount, variationCount };
 }
 
-async function seedSamplePricing(clientAId: string) {
-  const bleed = await prisma.product.findFirst({
-    where: { slug: "deerfros-inox-cutting-disc" },
-    include: { variations: true },
+async function seedSamplePricing(clientAId: string, clientBId: string) {
+  const products = await prisma.product.findMany({
+    where: { isActive: true },
+    include: { variations: { where: { isActive: true }, take: 3 } },
+    take: 6,
+    orderBy: { createdAt: "asc" },
   });
-  if (!bleed) return;
 
-  const variation = bleed.variations[0];
-  if (variation) {
+  for (let i = 0; i < products.length; i++) {
+    const p = products[i];
+    const clientId = i % 2 === 0 ? clientAId : clientBId;
+    const discount = i % 2 === 0 ? 0.88 : 0.92;
+
     await prisma.clientPriceOverride.upsert({
       where: {
         clientId_productId_variationId: {
-          clientId: clientAId,
-          productId: bleed.id,
-          variationId: variation.id,
+          clientId,
+          productId: p.id,
+          variationId: PRODUCT_LEVEL_VARIATION_ID,
         },
       },
-      update: { pricePaise: rupeesToPaise(75) },
+      update: { pricePaise: Math.round(p.defaultPricePaise * discount) },
       create: {
-        clientId: clientAId,
-        productId: bleed.id,
-        variationId: variation.id,
-        pricePaise: rupeesToPaise(75),
+        clientId,
+        productId: p.id,
+        variationId: PRODUCT_LEVEL_VARIATION_ID,
+        pricePaise: Math.round(p.defaultPricePaise * discount),
       },
     });
-  }
 
-  await prisma.clientPriceOverride.upsert({
-    where: {
-      clientId_productId_variationId: {
-        clientId: clientAId,
-        productId: bleed.id,
-        variationId: PRODUCT_LEVEL_VARIATION_ID,
-      },
-    },
-    update: { pricePaise: rupeesToPaise(78) },
-    create: {
-      clientId: clientAId,
-      productId: bleed.id,
-      variationId: PRODUCT_LEVEL_VARIATION_ID,
-      pricePaise: rupeesToPaise(78),
-    },
-  });
+    for (const v of p.variations.slice(0, 2)) {
+      const base = v.defaultPricePaise ?? p.defaultPricePaise;
+      await prisma.clientPriceOverride.upsert({
+        where: {
+          clientId_productId_variationId: {
+            clientId,
+            productId: p.id,
+            variationId: v.id,
+          },
+        },
+        update: { pricePaise: Math.round(base * discount) },
+        create: {
+          clientId,
+          productId: p.id,
+          variationId: v.id,
+          pricePaise: Math.round(base * discount),
+        },
+      });
+    }
+  }
 }
 
 async function main() {
   console.log("🌱 Seeding Lohiya Suppliers catalog...");
 
-  const { admin, clientA } = await seedUsers();
+  const { admin, clientA, clientB } = await seedUsers();
   await clearCatalog();
   const { productCount, variationCount } = await seedCatalog();
-  await seedSamplePricing(clientA.id);
+  await seedSamplePricing(clientA.id, clientB.id);
 
   const subcategoryCount = CATALOG.reduce((n, d) => n + d.subcategories.length, 0);
 

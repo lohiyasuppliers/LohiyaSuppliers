@@ -58,6 +58,12 @@ export default async function AdminCategoriesPage() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Link
+                      href={`/admin/categories/new?parentId=${dept.id}`}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-white text-brand-700 rounded-lg hover:bg-brand-50 border border-brand-100"
+                    >
+                      <Plus className="w-3 h-3" /> Subcategory
+                    </Link>
+                    <Link
                       href={`/admin/categories/${dept.id}/edit`}
                       className="p-1.5 rounded hover:bg-white text-gray-500"
                     >
@@ -115,8 +121,14 @@ export default async function AdminCategoriesPage() {
                   </div>
                 </div>
               ))}
+              <Link
+                href={`/admin/categories/new?parentId=${dept.id}`}
+                className="flex items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed border-brand-200 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors"
+              >
+                <Plus className="w-4 h-4" /> Add Subcategory
+              </Link>
               {dept.children.length === 0 && (
-                <p className="text-sm text-gray-400 col-span-full">No subcategories yet.</p>
+                <p className="text-sm text-gray-400 col-span-full -mt-2">No subcategories yet — add one above.</p>
               )}
             </div>
           </div>

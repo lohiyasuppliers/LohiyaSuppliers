@@ -10,7 +10,7 @@ export default function TermsPage() {
         <h2 className="text-lg font-bold text-gray-900 pt-4">Products & Pricing</h2>
         <p>All prices are listed in INR and are subject to change. Bulk pricing is available on request. Product specifications are provided for industrial use — please verify compatibility before ordering.</p>
         <h2 className="text-lg font-bold text-gray-900 pt-4">Orders & Payment</h2>
-        <p>Orders are confirmed upon payment verification. We accept UPI, bank transfer, COD (for approved B2B accounts), and card payments. GST invoices are provided for registered business accounts.</p>
+        <p>Orders are confirmed upon payment verification. We accept UPI, bank transfer, COD (for approved B2B accounts), and card payments. Bills are provided by admin for registered business accounts.</p>
         <h2 className="text-lg font-bold text-gray-900 pt-4">Shipping</h2>
         <p>We ship across India with worldwide shipping available for bulk orders. Delivery timelines depend on product availability and destination. Free shipping applies above the threshold shown at checkout.</p>
         <h2 className="text-lg font-bold text-gray-900 pt-4">Returns & Repairs</h2>

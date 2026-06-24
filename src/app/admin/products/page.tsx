@@ -21,7 +21,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
     where.OR = [
       { name: { contains: params.search } },
       { description: { contains: params.search } },
-      { hsnCode: { contains: params.search } },
+      { brand: { contains: params.search } },
     ];
   }
 
@@ -41,7 +41,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 admin-fade-in">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Catalog</h1>
@@ -83,7 +83,6 @@ export default async function AdminProductsPage({ searchParams }: Props) {
               <th className="text-left px-4 py-3 font-medium">Name</th>
               <th className="text-left px-4 py-3 font-medium">Brand</th>
               <th className="text-left px-4 py-3 font-medium">Category</th>
-              <th className="text-left px-4 py-3 font-medium">HSN</th>
               <th className="text-left px-4 py-3 font-medium">GST</th>
               <th className="text-left px-4 py-3 font-medium">Default Price</th>
               <th className="text-left px-4 py-3 font-medium">Variations</th>
@@ -113,7 +112,6 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                     {product.category.type === CategoryType.SERVICE ? "Service" : "Product"}
                   </span>
                 </td>
-                <td className="px-4 py-3 font-mono text-xs">{product.hsnCode}</td>
                 <td className="px-4 py-3">{product.gstRateBps / 100}%</td>
                 <td className="px-4 py-3 font-medium">{formatPaise(product.defaultPricePaise)}</td>
                 <td className="px-4 py-3">{product._count.variations}</td>

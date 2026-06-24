@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatPaise } from "@/lib/utils";
 import { Eye, UserCog } from "lucide-react";
 import { UserRoleBadge } from "@/components/admin/UserRoleBadge";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { Role } from "@prisma/client";
 
 export const metadata = { title: "Clients" };
@@ -11,38 +12,57 @@ export const revalidate = 30;
 export default async function UserManagementPage() {
   const users = await prisma.user.findMany({
     include: {
-      clientProfile: { select: { company: true, billingState: true, gstin: true } },
+      clientProfile: {
+        select: { company: true, billingState: true, gstin: true },
+      },
       _count: { select: { orders: true } },
+      orders: {
+        where: { paymentStatus: "PAID" },
+        select: { totalPaise: true },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
+  const clients = users.filter((u) => u.role === Role.CLIENT);
+
   const stats = {
     total: users.length,
     active: users.filter((u) => u.isActive).length,
-    clients: users.filter((u) => u.role === Role.CLIENT).length,
+    clients: clients.length,
     admins: users.filter((u) => u.role === Role.ADMIN).length,
+    totalRevenue: clients.reduce(
+      (sum, u) => sum + u.orders.reduce((s, o) => s + o.totalPaise, 0),
+      0
+    ),
   };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <UserCog className="w-7 h-7 text-brand-600" />
-          B2B Clients
-        </h1>
-        <p className="text-gray-500 text-sm">Manage client accounts and per-client pricing</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <UserCog className="w-7 h-7 text-brand-600" />
+            B2B Clients
+          </h1>
+          <p className="text-gray-500 text-sm">View, manage, and download client data</p>
+        </div>
+        <CsvDownloadButton
+          href="/api/admin/users/export"
+          label="Download All Clients (CSV)"
+        />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Total Accounts", value: stats.total },
           { label: "Active", value: stats.active },
-          { label: "Clients", value: stats.clients },
+          { label: "B2B Clients", value: stats.clients },
           { label: "Admins", value: stats.admins },
+          { label: "Client Revenue", value: formatPaise(stats.totalRevenue) },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-xl border p-4">
-            <div className="text-2xl font-bold text-gray-900">{s.value}</div>
+            <div className="text-xl font-bold text-gray-900">{s.value}</div>
             <div className="text-sm text-gray-500">{s.label}</div>
           </div>
         ))}
@@ -54,39 +74,51 @@ export default async function UserManagementPage() {
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Account</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Company</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">GSTIN</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">State</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Orders</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Total Spent</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Joined</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900">{user.name || "—"}</div>
-                  <div className="text-xs text-gray-500">{user.email}</div>
-                </td>
-                <td className="px-4 py-3">{user.clientProfile?.company || "—"}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {user.clientProfile?.billingState || "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <UserRoleBadge role={user.role} />
-                </td>
-                <td className="px-4 py-3">{user._count.orders}</td>
-                <td className="px-4 py-3 text-gray-500">{formatDate(user.createdAt)}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link
-                    href={`/admin/users/${user.id}`}
-                    className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs"
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {users.map((user) => {
+              const totalSpent = user.orders.reduce((s, o) => s + o.totalPaise, 0);
+              return (
+                <tr key={user.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{user.name || "—"}</div>
+                    <div className="text-xs text-gray-500">{user.email}</div>
+                    {user.phone && <div className="text-xs text-gray-400">{user.phone}</div>}
+                  </td>
+                  <td className="px-4 py-3">{user.clientProfile?.company || "—"}</td>
+                  <td className="px-4 py-3 text-xs font-mono text-gray-600">
+                    {user.clientProfile?.gstin || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600">
+                    {user.clientProfile?.billingState || "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <UserRoleBadge role={user.role} />
+                  </td>
+                  <td className="px-4 py-3">{user._count.orders}</td>
+                  <td className="px-4 py-3 font-medium text-brand-800">
+                    {user.role === Role.CLIENT ? formatPaise(totalSpent) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{formatDate(user.createdAt)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="inline-flex items-center gap-1 text-brand-600 hover:underline text-xs"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

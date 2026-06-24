@@ -10,6 +10,7 @@ export default async function AdminSettingsPage() {
     business_name: settings.businessName,
     business_gstin: settings.businessGstin,
     business_state: settings.businessState,
+    business_address: settings.businessAddress,
     contact_email: settings.contactEmail,
     contact_phone: settings.contactPhone,
     allow_voucher_cashback_stack: settings.allowVoucherCashbackStack ? "true" : "false",

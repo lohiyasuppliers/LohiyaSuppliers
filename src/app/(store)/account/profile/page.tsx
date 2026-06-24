@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { AccountSidebar } from "@/components/account/AccountSidebar";
+import { AccountShell } from "@/components/account/AccountShell";
+import { AccountPageHeader } from "@/components/account/AccountPageHeader";
 import { ProfileEditForm } from "@/components/account/ProfileEditForm";
 
 export const metadata = { title: "Company Profile" };
@@ -17,11 +18,12 @@ export default async function AccountProfilePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Company Profile</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <AccountSidebar />
-        <div className="lg:col-span-3">
-          <ProfileEditForm
+      <AccountPageHeader
+        title="Company Profile"
+        subtitle="Update your business details for billing and order processing"
+      />
+      <AccountShell>
+        <ProfileEditForm
             initial={{
               name: user.name || "",
               email: user.email,
@@ -34,8 +36,7 @@ export default async function AccountProfilePage() {
               pincode: p?.pincode || "",
             }}
           />
-        </div>
-      </div>
+      </AccountShell>
     </div>
   );
 }

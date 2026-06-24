@@ -1,5 +1,6 @@
 import { prisma } from "./prisma";
 import { PRODUCT_LEVEL_VARIATION_ID } from "./constants";
+import { getProductListFromPricePaise, getResolvedFromPricePaise } from "./product-price";
 
 export interface ResolvePriceInput {
   clientId?: string | null;
@@ -85,10 +86,15 @@ export async function resolvePricesForCatalog(
 
   if (!clientId) {
     for (const p of products) {
-      priceMap.set(p.id, p.defaultPricePaise);
       for (const v of p.variations) {
         priceMap.set(`${p.id}:${v.id}`, v.defaultPricePaise ?? p.defaultPricePaise);
       }
+      priceMap.set(
+        p.id,
+        p.variations.length > 0
+          ? getProductListFromPricePaise(p, p.variations)
+          : p.defaultPricePaise
+      );
     }
     return priceMap;
   }
@@ -103,22 +109,69 @@ export async function resolvePricesForCatalog(
 
   for (const p of products) {
     const productKey = `${p.id}:${PRODUCT_LEVEL_VARIATION_ID}`;
-    priceMap.set(
-      p.id,
-      overrideMap.get(productKey) ?? p.defaultPricePaise
-    );
+    const productOverride = overrideMap.get(productKey);
 
     for (const v of p.variations) {
       const varKey = `${p.id}:${v.id}`;
       priceMap.set(
-        `${p.id}:${v.id}`,
+        varKey,
         overrideMap.get(varKey) ??
-          overrideMap.get(productKey) ??
+          productOverride ??
           v.defaultPricePaise ??
           p.defaultPricePaise
       );
     }
+
+    if (p.variations.length > 0) {
+      priceMap.set(p.id, getResolvedFromPricePaise(priceMap, p, p.variations));
+    } else {
+      priceMap.set(p.id, productOverride ?? p.defaultPricePaise);
+    }
   }
 
   return priceMap;
+}
+
+export interface OrderLineInput {
+  productId: string;
+  variationId?: string | null;
+  quantity: number;
+}
+
+/** Resolve unit price for a single line using a pre-built price map. */
+export function unitPriceFromMap(
+  priceMap: Map<string, number>,
+  productId: string,
+  variationId: string | null | undefined,
+  fallbackPaise: number
+): number {
+  if (variationId) {
+    return priceMap.get(`${productId}:${variationId}`) ?? fallbackPaise;
+  }
+  return priceMap.get(productId) ?? fallbackPaise;
+}
+
+/** Props for ProductCard when showing client-specific catalog prices. */
+export function catalogPriceProps(
+  priceMap: Map<string, number>,
+  product: { id: string; defaultPricePaise: number },
+  clientId: string | null | undefined,
+  listFromPricePaise?: number
+) {
+  const listPrice = listFromPricePaise ?? product.defaultPricePaise;
+  const displayPricePaise = priceMap.get(product.id) ?? listPrice;
+  const isCustomPrice = clientId != null && displayPricePaise !== listPrice;
+  return { displayPricePaise, isCustomPrice, listFromPricePaise: listPrice };
+}
+
+/** Batch-resolve prices for order/cart line items (2 DB queries max). */
+export async function resolvePricesForLineItems(
+  clientId: string | null | undefined,
+  products: Array<{
+    id: string;
+    defaultPricePaise: number;
+    variations: Array<{ id: string; defaultPricePaise: number | null }>;
+  }>
+): Promise<Map<string, number>> {
+  return resolvePricesForCatalog(clientId, products);
 }

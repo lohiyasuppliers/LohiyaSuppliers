@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ProductCard } from "@/components/products/ProductCard";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
-import { OptimizedImage } from "@/components/ui/OptimizedImage";
-import { productListSelect, APPLICATION_LABELS } from "@/lib/catalog";
+import { CatalogImage } from "@/components/ui/CatalogImage";
+import { APPLICATION_LABELS } from "@/lib/catalog";
+import { getCachedProductList } from "@/lib/cache";
+import { categoryImageForSlug, normalizeImageUrl } from "@/lib/catalog-images";
+import { ProductGrid } from "@/components/products/ProductGrid";
+import { PricedProductGrid } from "@/components/products/PricedProductGrid";
 import { CategoryType, ApplicationType } from "@prisma/client";
 import { ArrowLeft, ArrowRight, Package } from "lucide-react";
 
@@ -39,11 +42,10 @@ export default async function CategoryPage({ params }: Props) {
   const isDepartment = !category.parentId;
   const products = isDepartment
     ? []
-    : await prisma.product.findMany({
-        where: { categoryId: category.id, isActive: true },
-        select: productListSelect,
-        orderBy: { name: "asc" },
-      });
+    : await getCachedProductList({ category: category.slug, sort: "name" });
+
+  const categoryImage =
+    normalizeImageUrl(category.imageUrl) || categoryImageForSlug(category.slug);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -60,16 +62,11 @@ export default async function CategoryPage({ params }: Props) {
       </Link>
 
       <ScrollReveal>
-        <div className="relative overflow-hidden rounded-3xl mb-10">
-          {category.imageUrl && (
-            <div className="absolute inset-0">
-              <OptimizedImage src={category.imageUrl} alt="" sizes="100vw" className="object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-brand-950/95 via-brand-900/85 to-brand-800/70" />
-            </div>
-          )}
-          {!category.imageUrl && (
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-900 to-brand-700" />
-          )}
+        <div className="relative overflow-hidden rounded-3xl mb-10 min-h-[220px] md:min-h-[280px]">
+          <div className="absolute inset-0">
+            <CatalogImage src={categoryImage} alt={category.name} sizes="100vw" className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-brand-950/95 via-brand-900/85 to-brand-800/70" />
+          </div>
           <div className="relative text-white p-8 md:p-12">
             {category.parent && (
               <span className="text-sm font-medium uppercase text-brand-200">
@@ -104,7 +101,7 @@ export default async function CategoryPage({ params }: Props) {
               >
                 <div className="aspect-[16/9] relative bg-gray-100 overflow-hidden">
                   {sub.imageUrl ? (
-                    <OptimizedImage
+                    <CatalogImage
                       src={sub.imageUrl}
                       alt={sub.name}
                       sizes="(max-width: 768px) 100vw, 33vw"
@@ -138,13 +135,12 @@ export default async function CategoryPage({ params }: Props) {
           <p className="text-lg">No products in this category yet.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product, i) => (
-            <ScrollReveal key={product.id} delay={Math.min(i * 40, 280)}>
-              <ProductCard product={product} />
-            </ScrollReveal>
-          ))}
-        </div>
+        <PricedProductGrid productIds={products.map((p) => p.id)}>
+          <ProductGrid
+            products={products}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          />
+        </PricedProductGrid>
       )}
     </div>
   );

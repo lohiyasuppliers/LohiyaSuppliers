@@ -9,6 +9,7 @@ export async function getPlatformSettings() {
     businessName: map.business_name ?? DEFAULT_PLATFORM_SETTINGS.business_name,
     businessGstin: map.business_gstin ?? DEFAULT_PLATFORM_SETTINGS.business_gstin,
     businessState: map.business_state ?? DEFAULT_PLATFORM_SETTINGS.business_state,
+    businessAddress: map.business_address ?? DEFAULT_PLATFORM_SETTINGS.business_address,
     allowVoucherCashbackStack:
       (map.allow_voucher_cashback_stack ?? DEFAULT_PLATFORM_SETTINGS.allow_voucher_cashback_stack) ===
       "true",
@@ -33,7 +34,7 @@ export async function getSettings() {
     siteTagline: "B2B Industrial Abrasives & Tools",
     contactPhone: s.contactPhone,
     contactEmail: s.contactEmail,
-    contactAddress: "",
+    contactAddress: s.businessAddress,
     gstNumber: s.businessGstin,
     businessHours: "Mon–Sat: 9AM – 6PM",
   };

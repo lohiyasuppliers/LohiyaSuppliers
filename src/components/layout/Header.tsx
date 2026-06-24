@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import {
   ShoppingCart,
   Menu,
@@ -18,7 +18,9 @@ import {
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
-import { CategoryMegaMenu, MegaMenuDepartment } from "@/components/layout/CategoryMegaMenu";
+import { MegaMenuDepartment } from "@/components/layout/CategoryMegaMenu";
+import { StoreNavLinks } from "@/components/layout/StoreNavLinks";
+import { ContactPhoneLinks } from "@/components/layout/ContactPhoneLinks";
 
 const HeaderSearch = dynamic(
   () => import("@/components/layout/HeaderSearch").then((m) => ({ default: m.HeaderSearch })),
@@ -29,11 +31,9 @@ const HeaderSearch = dynamic(
 );
 
 export function Header({
-  contactPhone = "",
   contactEmail = "",
   catalogTree = [],
 }: {
-  contactPhone?: string;
   contactEmail?: string;
   catalogTree?: MegaMenuDepartment[];
 }) {
@@ -42,16 +42,11 @@ export function Header({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isAdmin = (session?.user as { role?: string })?.role === "ADMIN";
-  const navLinks = [
-    { href: "/products", label: "All Products", isMega: false },
-    { href: "/products?application=metal", label: "Metal Application", isMega: false },
-    { href: "/products?application=wood", label: "Wood Application", isMega: false },
-    { href: "/about", label: "About", isMega: false },
-    { href: "/contact", label: "Contact", isMega: false },
-  ];
+
+  const closeMobile = () => setMobileOpen(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-sm animate-fade-in">
       <div className="bg-brand-950 text-white text-sm py-2">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <span className="flex items-center gap-2">
@@ -59,11 +54,10 @@ export function Header({
             Worldwide Shipping · Premium Industrial Abrasives
           </span>
           <span className="hidden sm:flex items-center gap-4 text-brand-200">
-            {contactPhone && (
-              <a href={`tel:${contactPhone.replace(/\s/g, "")}`} className="flex items-center gap-1 hover:text-white transition-colors">
-                <Phone className="w-3.5 h-3.5" /> {contactPhone}
-              </a>
-            )}
+            <span className="flex items-center gap-1">
+              <Phone className="w-3.5 h-3.5" />
+              <ContactPhoneLinks linkClassName="hover:text-white transition-colors" />
+            </span>
             {contactEmail && (
               <a href={`mailto:${contactEmail}`} className="flex items-center gap-1 hover:text-white transition-colors">
                 <Mail className="w-3.5 h-3.5" /> {contactEmail}
@@ -160,49 +154,36 @@ export function Header({
             <button
               className="lg:hidden p-2 rounded-xl hover:bg-gray-100"
               onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        <nav className="hidden lg:flex items-center gap-1 pb-3 border-t border-gray-100 pt-3 overflow-x-auto">
-          {catalogTree.length > 0 && <CategoryMegaMenu departments={catalogTree} />}
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-brand-700 hover:bg-brand-50 rounded-lg transition-colors whitespace-nowrap"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden lg:flex items-center gap-1 pb-3 border-t border-gray-100 pt-3 overflow-visible relative z-40">
+          <Suspense fallback={<div className="h-8 w-64 bg-gray-100 rounded-lg animate-pulse" />}>
+            <StoreNavLinks catalogTree={catalogTree} variant="desktop" />
+          </Suspense>
         </nav>
       </div>
 
       <div
         className={cn(
-          "lg:hidden border-t border-gray-100 bg-white overflow-hidden transition-all",
-          mobileOpen ? "max-h-[28rem]" : "max-h-0"
+          "lg:hidden border-t border-gray-100 bg-white overflow-hidden transition-all duration-300",
+          mobileOpen ? "max-h-[32rem] overflow-y-auto" : "max-h-0"
         )}
       >
         <nav className="px-4 py-3 flex flex-col gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-brand-50 rounded-lg"
-              onClick={() => setMobileOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          <Suspense fallback={null}>
+            <StoreNavLinks catalogTree={catalogTree} variant="mobile" onNavigate={closeMobile} />
+          </Suspense>
           {!session && (
             <>
-              <Link href="/login" className="px-3 py-2.5 text-sm font-medium text-brand-700" onClick={() => setMobileOpen(false)}>
+              <Link href="/login" className="px-3 py-2.5 text-sm font-medium text-brand-700" onClick={closeMobile}>
                 Login
               </Link>
-              <Link href="/register" className="px-3 py-2.5 text-sm font-medium text-brand-700" onClick={() => setMobileOpen(false)}>
+              <Link href="/register" className="px-3 py-2.5 text-sm font-medium text-brand-700" onClick={closeMobile}>
                 Register
               </Link>
             </>

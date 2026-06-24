@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Mail, Phone, MapPin, ArrowRight } from "lucide-react";
+import { Mail, MapPin, ArrowRight, Phone } from "lucide-react";
+import { ContactPhoneLinks } from "@/components/layout/ContactPhoneLinks";
 
 export function Footer({
-  contactPhone = "",
   contactEmail = "",
   contactAddress = "",
   gstNumber = "",
@@ -12,7 +12,6 @@ export function Footer({
   siteTagline = "",
   categories = [],
 }: {
-  contactPhone?: string;
   contactEmail?: string;
   contactAddress?: string;
   gstNumber?: string;
@@ -71,11 +70,9 @@ export function Footer({
                 <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-brand-400" />
                 <span>{contactAddress || "Contact us for address"}</span>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 shrink-0 text-brand-400" />
-                <a href={`tel:${contactPhone.replace(/\s/g, "")}`} className="hover:text-white transition-colors">
-                  {contactPhone}
-                </a>
+              <li className="flex items-start gap-2.5">
+                <Phone className="w-4 h-4 mt-0.5 shrink-0 text-brand-400" />
+                <ContactPhoneLinks linkClassName="hover:text-white transition-colors" />
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 shrink-0 text-brand-400" />

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" fill="none">
+  <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#5c3d1e"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs>
+  <rect width="800" height="800" fill="url(#g)"/>
+  <ellipse cx="400" cy="400" rx="280" ry="60" fill="#d97706" opacity="0.5"/>
+  <ellipse cx="400" cy="340" rx="280" ry="60" fill="#f59e0b" opacity="0.4"/>
+  <ellipse cx="400" cy="280" rx="280" ry="60" fill="#fbbf24" opacity="0.3"/>
+  <text x="400" y="720" text-anchor="middle" fill="#fde68a" font-family="system-ui,sans-serif" font-size="24" font-weight="600">SANDING BELTS</text>
+</svg>
