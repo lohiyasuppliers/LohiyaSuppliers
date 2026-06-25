@@ -436,6 +436,7 @@
     opacity: 1;
   }
 
+  .about-grain::after {
     content: "";
     position: absolute;
     inset: 0;
