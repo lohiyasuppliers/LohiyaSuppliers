@@ -48,13 +48,13 @@ const TEAM = [
 ];
 
 export default async function AboutPage() {
-  const [productCount, categoryCount, orderCount, trendingProducts] = await Promise.all([
+  const [productCount, categoryCount, orderCount, trendingProductsRaw] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.category.count({ where: { isActive: true } }),
     prisma.order.count({ where: { status: "COMPLETED" } }),
     prisma.product.findMany({
       where: { isActive: true },
-      orderBy: { sortOrder: "asc" },
+      orderBy: { name: "asc" },
       take: 36,
       select: {
         id: true,
@@ -63,14 +63,17 @@ export default async function AboutPage() {
         brand: true,
         defaultPricePaise: true,
         images: true,
-        application: true,
-        sortOrder: true,
         category: {
           select: { name: true, slug: true, type: true, application: true },
         },
       },
     }),
   ]);
+
+  const trendingProducts = trendingProductsRaw.map((p, i) => ({
+    ...p,
+    sortOrder: i,
+  }));
 
   return (
     <div className="overflow-x-hidden motion-page-store">

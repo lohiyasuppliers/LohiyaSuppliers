@@ -27,14 +27,13 @@ export type AboutTrendingProduct = {
   brand: string | null;
   defaultPricePaise: number;
   images: string;
-  application: string | null;
+  sortOrder: number;
   category: {
     name: string;
     slug: string;
     type: string;
     application: string | null;
   };
-  sortOrder: number;
 };
 
 type FilterId =
@@ -74,9 +73,9 @@ function matchesFilter(p: AboutTrendingProduct, filter: FilterId): boolean {
     case "trending":
       return p.sortOrder <= 12;
     case "metal":
-      return p.application === "METAL" || p.application === "BOTH" || p.category.application === "METAL";
+      return p.category.application === "METAL" || p.category.application === "BOTH";
     case "wood":
-      return p.application === "WOOD" || p.application === "BOTH" || p.category.application === "WOOD";
+      return p.category.application === "WOOD" || p.category.application === "BOTH";
     case "tools":
       return p.category.slug === "tools-hardware" || p.category.slug === "abrasives";
     case "services":
