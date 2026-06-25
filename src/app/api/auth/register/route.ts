@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeIndianPhone,
+  validateContactNumber,
+  validateContactPersonName,
+} from "@/lib/contact-fields";
 import { Role } from "@prisma/client";
 
 export async function POST(req: Request) {
@@ -19,11 +24,21 @@ export async function POST(req: Request) {
       pincode,
     } = body;
 
-    if (!name || !email || !password || !company || !billingState) {
+    const nameError = validateContactPersonName(String(name || ""));
+    if (nameError) {
+      return NextResponse.json({ error: nameError }, { status: 400 });
+    }
+
+    const phoneError = validateContactNumber(String(phone || ""));
+    if (phoneError) {
+      return NextResponse.json({ error: phoneError }, { status: 400 });
+    }
+
+    if (!email || !password || !company || !billingState) {
       return NextResponse.json(
         {
           error:
-            "Name, email, password, company name, and billing state are required",
+            "Email, password, company name, billing state, contact person name, and contact number are required",
         },
         { status: 400 }
       );
@@ -36,12 +51,13 @@ export async function POST(req: Request) {
     }
 
     const hashed = await bcrypt.hash(password, 12);
+    const normalizedPhone = normalizeIndianPhone(String(phone))!;
     await prisma.user.create({
       data: {
         name: String(name).trim(),
         email: normalizedEmail,
         password: hashed,
-        phone: phone ? String(phone).trim() : null,
+        phone: normalizedPhone,
         role: Role.CLIENT,
         isActive: true,
         clientProfile: {

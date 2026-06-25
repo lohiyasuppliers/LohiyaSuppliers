@@ -2,6 +2,11 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeIndianPhone,
+  validateContactNumber,
+  validateContactPersonName,
+} from "@/lib/contact-fields";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -43,11 +48,19 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Company and billing state are required" }, { status: 400 });
   }
 
+  const nameError = validateContactPersonName(String(name || ""));
+  if (nameError) return NextResponse.json({ error: nameError }, { status: 400 });
+
+  const phoneError = validateContactNumber(String(phone || ""));
+  if (phoneError) return NextResponse.json({ error: phoneError }, { status: 400 });
+
+  const normalizedPhone = normalizeIndianPhone(String(phone))!;
+
   const user = await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      name: name?.trim() || undefined,
-      phone: phone?.trim() || undefined,
+      name: String(name).trim(),
+      phone: normalizedPhone,
       clientProfile: {
         upsert: {
           create: {

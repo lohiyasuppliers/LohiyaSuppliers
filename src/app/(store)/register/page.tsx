@@ -76,8 +76,27 @@ export default function RegisterPage() {
             <Input required value={form.company} onChange={(e) => update("company", e.target.value)} />
           </div>
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Contact Name *</label>
-            <Input required value={form.name} onChange={(e) => update("name", e.target.value)} />
+            <label className="text-sm font-medium text-gray-700 block mb-1">Contact Person Name *</label>
+            <Input
+              required
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Rajesh Kumar"
+              autoComplete="name"
+            />
+            <p className="text-xs text-gray-500 mt-1">Full name of the person we should contact at your company</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1">Contact Number *</label>
+            <Input
+              type="tel"
+              required
+              value={form.phone}
+              onChange={(e) => update("phone", e.target.value)}
+              placeholder="10-digit mobile number"
+              autoComplete="tel"
+              inputMode="numeric"
+            />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
@@ -86,10 +105,6 @@ export default function RegisterPage() {
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1">Password *</label>
             <Input type="password" required value={form.password} onChange={(e) => update("password", e.target.value)} />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
-            <Input value={form.phone} onChange={(e) => update("phone", e.target.value)} />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1">GSTIN</label>

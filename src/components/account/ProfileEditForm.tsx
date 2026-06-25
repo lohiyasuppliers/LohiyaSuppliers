@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import {
+  normalizeIndianPhone,
+  validateContactNumber,
+  validateContactPersonName,
+} from "@/lib/contact-fields";
 
 interface ProfileFormProps {
   initial: {
@@ -26,11 +31,24 @@ export function ProfileEditForm({ initial }: ProfileFormProps) {
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    const nameError = validateContactPersonName(form.name);
+    if (nameError) {
+      setMsg(nameError);
+      return;
+    }
+    const phoneError = validateContactNumber(form.phone);
+    if (phoneError) {
+      setMsg(phoneError);
+      return;
+    }
     setSaving(true);
     const res = await fetch("/api/user/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        phone: normalizeIndianPhone(form.phone),
+      }),
     });
     if (res.ok) {
       setMsg("Profile updated successfully");
@@ -44,7 +62,7 @@ export function ProfileEditForm({ initial }: ProfileFormProps) {
 
   const fields = [
     { key: "company", label: "Company Name *" },
-    { key: "phone", label: "Phone" },
+    { key: "phone", label: "Contact Number *", type: "tel" as const },
     { key: "gstin", label: "GSTIN" },
     { key: "billingState", label: "Billing State *" },
     { key: "address", label: "Address", full: true },
@@ -63,11 +81,13 @@ export function ProfileEditForm({ initial }: ProfileFormProps) {
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-sm text-gray-500">Full Name</label>
+          <label className="text-sm text-gray-500">Contact Person Name *</label>
           <input
             value={form.name}
-            disabled
-            className="w-full px-3 py-2 border rounded-lg text-sm bg-gray-50 mt-1"
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="w-full px-3 py-2 border rounded-lg text-sm mt-1"
+            placeholder="e.g. Rajesh Kumar"
+            required
           />
         </div>
         <div>
@@ -82,10 +102,12 @@ export function ProfileEditForm({ initial }: ProfileFormProps) {
           <div key={f.key} className={f.full ? "sm:col-span-2" : ""}>
             <label className="text-sm text-gray-500">{f.label}</label>
             <input
+              type={f.type ?? "text"}
               value={form[f.key as keyof typeof form]}
               onChange={(e) => setForm({ ...form, [f.key]: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg text-sm mt-1"
               required={f.label.includes("*")}
+              inputMode={f.type === "tel" ? "numeric" : undefined}
             />
           </div>
         ))}

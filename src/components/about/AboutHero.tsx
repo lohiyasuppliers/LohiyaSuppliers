@@ -5,9 +5,11 @@ import { Sparkles, ArrowDown } from "lucide-react";
 
 interface AboutHeroProps {
   image: string;
+  productCount: number;
+  categoryCount: number;
 }
 
-export function AboutHero({ image }: AboutHeroProps) {
+export function AboutHero({ image, productCount, categoryCount }: AboutHeroProps) {
   return (
     <section className="relative min-h-[88vh] flex items-center overflow-hidden about-grain">
       <div className="absolute inset-0">
@@ -56,7 +58,12 @@ export function AboutHero({ image }: AboutHeroProps) {
           </p>
 
           <div className="flex flex-wrap gap-3 animate-fade-in-up" style={{ animationDelay: "350ms" }}>
-            {["37+ Products", "15 Categories", "B2B Trusted", "GST Ready"].map((tag, i) => (
+            {[
+              `${productCount}+ Products`,
+              `${categoryCount}+ Categories`,
+              "B2B Trusted",
+              "GST Ready",
+            ].map((tag, i) => (
               <span
                 key={tag}
                 className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20 hover:border-white/30 transition-all duration-300"

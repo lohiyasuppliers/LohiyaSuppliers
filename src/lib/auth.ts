@@ -20,7 +20,11 @@ export const authOptions: NextAuthOptions = {
           include: { clientProfile: true },
         });
 
-        if (!user || !user.isActive) return null;
+        if (!user) return null;
+
+        if (!user.isActive) {
+          throw new Error("Account suspended. Contact your administrator.");
+        }
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) return null;

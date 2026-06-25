@@ -2,7 +2,7 @@
 
 import { useInView } from "@/hooks/useInView";
 import { AboutSectionHeader } from "@/components/about/AboutSectionHeader";
-import { Award, Package, Shield, Truck } from "lucide-react";
+import { Award, Package, Shield, Truck, FileText, Wrench, LayoutGrid, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const FEATURES = [
@@ -10,6 +10,10 @@ const FEATURES = [
   { icon: Award, title: "Best Quality", desc: "Authorized Deerfros, Leitz & AIPL — genuine industrial grade." },
   { icon: Shield, title: "Secure Payments", desc: "Prepaid and postpaid options with trusted payment processing." },
   { icon: Package, title: "Best Offers", desc: "Custom B2B pricing, cashback rewards, and volume discounts." },
+  { icon: Wrench, title: "Repair Services", desc: "Bandsaw blade repair and sharpening for bookbinding equipment." },
+  { icon: FileText, title: "GST Invoicing", desc: "Compliant bills and proforma invoices for registered businesses." },
+  { icon: LayoutGrid, title: "Live Catalog", desc: "Real-time pricing, variations, and stock-ready product pages." },
+  { icon: UserCircle, title: "Account Portal", desc: "Order history, bills, wallet, and profile in one dashboard." },
 ];
 
 export function AboutFeatures() {

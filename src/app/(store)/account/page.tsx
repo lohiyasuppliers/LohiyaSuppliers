@@ -339,8 +339,9 @@ export default async function AccountPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 {[
                   ["Company", profile?.company],
+                  ["Contact Person", user?.name],
+                  ["Contact Number", user?.phone],
                   ["Billing State", profile?.billingState],
-                  ["Phone", user?.phone],
                   ["City", profile?.city],
                   ["Address", profile?.address],
                   ["Email", user?.email],

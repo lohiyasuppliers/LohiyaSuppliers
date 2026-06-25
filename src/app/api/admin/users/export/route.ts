@@ -25,9 +25,9 @@ export async function GET(req: Request) {
 
   const headers = [
     "ID",
-    "Name",
+    "Contact Person",
     "Email",
-    "Phone",
+    "Contact Number",
     "Company",
     "GSTIN",
     "Billing State",

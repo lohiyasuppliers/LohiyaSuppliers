@@ -8,6 +8,8 @@ import { AdminBillManager } from "@/components/admin/AdminBillManager";
 import { ClientPricingManager } from "@/components/admin/ClientPricingManager";
 import { ClientCashbackManager } from "@/components/admin/ClientCashbackManager";
 import { ClientDiscountManager } from "@/components/admin/ClientDiscountManager";
+import { UserAccountActions } from "@/components/admin/UserAccountActions";
+import { getSession } from "@/lib/session";
 import { ArrowLeft } from "lucide-react";
 import { Role } from "@prisma/client";
 
@@ -17,6 +19,7 @@ interface Props {
 
 export default async function AdminUserDetailPage({ params }: Props) {
   const { id } = await params;
+  const session = await getSession();
   const [user, bills] = await Promise.all([
     prisma.user.findUnique({
       where: { id },
@@ -65,9 +68,29 @@ export default async function AdminUserDetailPage({ params }: Props) {
             <h1 className="text-2xl font-bold text-gray-900">{user.name || user.email}</h1>
             <p className="text-gray-500">{user.email}</p>
             {user.phone && <p className="text-sm text-gray-500 mt-1">{user.phone}</p>}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              <span
+                className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                  user.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                }`}
+              >
+                {user.isActive ? "Active" : "Suspended"}
+              </span>
+            </div>
           </div>
           <UserRoleBadge role={user.role} />
         </div>
+
+        {user.role === Role.CLIENT && (
+          <UserAccountActions
+            userId={user.id}
+            email={user.email}
+            isActive={user.isActive}
+            role={user.role}
+            canManage={session?.user?.id !== user.id}
+            redirectOnDelete
+          />
+        )}
 
         {user.role === Role.CLIENT && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
@@ -96,12 +119,16 @@ export default async function AdminUserDetailPage({ params }: Props) {
               <span className="font-medium font-mono">{user.clientProfile.gstin || "—"}</span>
             </div>
             <div>
-              <span className="text-gray-500">Billing State:</span>{" "}
-              <span className="font-medium">{user.clientProfile.billingState}</span>
+              <span className="text-gray-500">Contact Person:</span>{" "}
+              <span className="font-medium">{user.name || "—"}</span>
             </div>
             <div>
-              <span className="text-gray-500">Phone:</span>{" "}
+              <span className="text-gray-500">Contact Number:</span>{" "}
               <span className="font-medium">{user.phone || "—"}</span>
+            </div>
+            <div>
+              <span className="text-gray-500">Billing State:</span>{" "}
+              <span className="font-medium">{user.clientProfile.billingState}</span>
             </div>
             <div className="sm:col-span-2">
               <span className="text-gray-500">Address:</span>{" "}

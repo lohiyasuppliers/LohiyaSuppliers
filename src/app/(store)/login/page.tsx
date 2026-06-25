@@ -18,7 +18,7 @@ export default function LoginPage() {
     setError("");
     const result = await signIn("credentials", { email, password, redirect: false });
     if (result?.error) {
-      setError("Invalid email or password");
+      setError(result.error === "CredentialsSignin" ? "Invalid email or password" : result.error);
       setLoading(false);
     } else {
       const profileRes = await fetch("/api/user/profile");

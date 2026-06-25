@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
+import { deleteUserPermanently } from "@/lib/delete-user";
 import { Role } from "@prisma/client";
+
+async function getTargetUser(id: string) {
+  return prisma.user.findUnique({ where: { id }, select: { id: true, role: true, email: true } });
+}
+
+function cannotManageAdmin(target: { role: Role }) {
+  return target.role === Role.ADMIN;
+}
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -31,6 +40,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!auth.authorized) return auth.response;
   const { id } = await params;
   const data = await req.json();
+
+  const target = await getTargetUser(id);
+  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (cannotManageAdmin(target)) {
+    return NextResponse.json({ error: "Admin accounts cannot be suspended" }, { status: 400 });
+  }
+  if (auth.session.user.id === id && data.isActive === false) {
+    return NextResponse.json({ error: "Cannot suspend your own account" }, { status: 400 });
+  }
 
   const userUpdate: Record<string, unknown> = {};
   if (data.name !== undefined) userUpdate.name = data.name;
@@ -82,6 +100,17 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: "Cannot delete your own account" }, { status: 400 });
   }
 
-  await prisma.user.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+  const target = await getTargetUser(id);
+  if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (cannotManageAdmin(target)) {
+    return NextResponse.json({ error: "Admin accounts cannot be deleted" }, { status: 400 });
+  }
+
+  try {
+    await deleteUserPermanently(id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("delete user failed", error);
+    return NextResponse.json({ error: "Failed to delete user" }, { status: 500 });
+  }
 }

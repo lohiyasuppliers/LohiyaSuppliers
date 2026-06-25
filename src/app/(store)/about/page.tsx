@@ -9,6 +9,9 @@ import { AboutStatsSection } from "@/components/about/AboutStatsSection";
 import { AboutFeatures } from "@/components/about/AboutFeatures";
 import { AboutOfferBento } from "@/components/about/AboutOfferBento";
 import { AboutCTA } from "@/components/about/AboutCTA";
+import { AboutTrendingExplorer } from "@/components/about/AboutTrendingExplorer";
+import { AboutCapabilitiesGrid } from "@/components/about/AboutCapabilitiesGrid";
+import { AboutMilestoneTimeline } from "@/components/about/AboutMilestoneTimeline";
 
 export const metadata = { title: "About Us" };
 
@@ -45,20 +48,44 @@ const TEAM = [
 ];
 
 export default async function AboutPage() {
-  const [productCount, categoryCount, orderCount] = await Promise.all([
+  const [productCount, categoryCount, orderCount, trendingProducts] = await Promise.all([
     prisma.product.count({ where: { isActive: true } }),
     prisma.category.count({ where: { isActive: true } }),
     prisma.order.count({ where: { status: "COMPLETED" } }),
+    prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+      take: 36,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        brand: true,
+        defaultPricePaise: true,
+        images: true,
+        application: true,
+        sortOrder: true,
+        category: {
+          select: { name: true, slug: true, type: true, application: true },
+        },
+      },
+    }),
   ]);
 
   return (
-    <div className="overflow-x-hidden">
-      <AboutHero image={IMG.aboutHero} />
+    <div className="overflow-x-hidden motion-page-store">
+      <AboutHero image={IMG.aboutHero} productCount={productCount} categoryCount={categoryCount} />
       <AboutMarquee />
 
       <AboutBusinessSection workshopImage={IMG.aboutWorkshop} warehouseImage={IMG.aboutWarehouse} />
 
+      <AboutMilestoneTimeline />
+
       <AboutValues />
+
+      <AboutTrendingExplorer products={trendingProducts} />
+
+      <AboutCapabilitiesGrid />
 
       <AboutTeamSection team={TEAM} />
 
