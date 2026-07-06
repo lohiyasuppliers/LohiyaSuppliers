@@ -83,9 +83,6 @@ export default function LoginPage() {
               Register
             </Link>
           </p>
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
-            <strong>Demo:</strong> admin@lohiyasuppliers.com / admin123
-          </div>
         </form>
       </div>
     </div>

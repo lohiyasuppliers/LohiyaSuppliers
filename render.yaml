@@ -18,6 +18,6 @@ services:
       - key: NEXTAUTH_SECRET
         sync: false
       - key: NEXTAUTH_URL
-        value: https://lohiya-suppliers.onrender.com
+        value: https://lohiyas.com
       - key: BUSINESS_STATE
         value: Maharashtra
