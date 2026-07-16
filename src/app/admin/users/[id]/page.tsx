@@ -8,6 +8,7 @@ import { AdminBillManager } from "@/components/admin/AdminBillManager";
 import { ClientPricingManager } from "@/components/admin/ClientPricingManager";
 import { ClientCashbackManager } from "@/components/admin/ClientCashbackManager";
 import { ClientDiscountManager } from "@/components/admin/ClientDiscountManager";
+import { ClientGstChoiceToggle } from "@/components/admin/ClientGstChoiceToggle";
 import { UserAccountActions } from "@/components/admin/UserAccountActions";
 import { getSession } from "@/lib/session";
 import { ArrowLeft } from "lucide-react";
@@ -89,6 +90,13 @@ export default async function AdminUserDetailPage({ params }: Props) {
             role={user.role}
             canManage={session?.user?.id !== user.id}
             redirectOnDelete
+          />
+        )}
+
+        {user.role === Role.CLIENT && user.clientProfile && (
+          <ClientGstChoiceToggle
+            userId={user.id}
+            allowGstChoice={user.clientProfile.allowGstChoice}
           />
         )}
 

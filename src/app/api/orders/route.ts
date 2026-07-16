@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       useCashback?: boolean;
       useDiscount?: boolean;
       useWalletBalance?: boolean;
+      includeGst?: boolean;
     }>(req);
     if (!body) return apiError("Invalid request body");
 
@@ -63,6 +64,7 @@ export async function POST(req: Request) {
       useCashback: body.useCashback,
       applyCashbackPaise: body.applyCashbackPaise,
       useWalletBalance: body.useWalletBalance,
+      includeGst: body.includeGst,
     });
 
     const totalPaise = quote.payableTotalPaise;

@@ -14,6 +14,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const body = await req.json();
 
+  const purchasePricePaise =
+    body.purchasePriceRupees === "" || body.purchasePriceRupees == null
+      ? null
+      : rupeesToPaise(Number(body.purchasePriceRupees));
+  const purchasePriceDate =
+    body.purchasePriceDate === "" || body.purchasePriceDate == null
+      ? null
+      : new Date(body.purchasePriceDate);
+
   const product = await prisma.product.update({
     where: { id },
     data: {
@@ -28,6 +37,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         body.defaultPriceRupees != null
           ? rupeesToPaise(Number(body.defaultPriceRupees))
           : undefined,
+      purchasePricePaise,
+      purchasePriceDate:
+        purchasePriceDate && !Number.isNaN(purchasePriceDate.getTime())
+          ? purchasePriceDate
+          : null,
       images: body.images,
       isActive: body.isActive,
     },
@@ -44,7 +58,34 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!auth.authorized) return auth.response;
 
   const { id } = await params;
-  await prisma.product.delete({ where: { id } });
-  revalidateProductCatalog();
-  return NextResponse.json({ success: true });
+
+  try {
+    const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.productVariation.deleteMany({ where: { productId: id } });
+      await tx.clientPriceOverride.deleteMany({ where: { productId: id } });
+      await tx.cashbackRule.deleteMany({ where: { productId: id } });
+      await tx.productDiscountRule.deleteMany({ where: { productId: id } });
+      await tx.clientVoucher.deleteMany({ where: { productId: id } });
+
+      if (orderItemCount > 0) {
+        await tx.product.update({
+          where: { id },
+          data: { isActive: false },
+        });
+      } else {
+        await tx.product.delete({ where: { id } });
+      }
+    });
+
+    revalidateProductCatalog();
+    return NextResponse.json({
+      success: true,
+      softDeleted: orderItemCount > 0,
+    });
+  } catch (error) {
+    console.error("delete product failed", error);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  }
 }

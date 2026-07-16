@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     useDiscount?: boolean;
     applyCashbackPaise?: number;
     useWalletBalance?: boolean;
+    includeGst?: boolean;
   }>(req);
 
   if (!body?.items?.length) return apiError("No items");
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
       useCashback: body.useCashback,
       applyCashbackPaise: body.applyCashbackPaise,
       useWalletBalance: body.useWalletBalance,
+      includeGst: body.includeGst,
     });
     return apiOk(quote);
   } catch (e) {

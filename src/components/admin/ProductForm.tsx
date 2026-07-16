@@ -26,6 +26,8 @@ interface ProductFormProps {
     hsnCode: string;
     gstRateBps: number;
     defaultPricePaise: number;
+    purchasePricePaise?: number | null;
+    purchasePriceDate?: Date | string | null;
     categoryId: string;
     isActive: boolean;
     images: string;
@@ -34,6 +36,13 @@ interface ProductFormProps {
 }
 
 const BRAND_OPTIONS = ["Deerfros", "Leitz", "AIPL", "Other"];
+
+function toDateInputValue(value?: Date | string | null) {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
 
 export function ProductForm({ categories, initialData, initialVariations = [] }: ProductFormProps) {
   const router = useRouter();
@@ -49,6 +58,11 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
     description: initialData?.description || "",
     hsnCode: initialData?.hsnCode || "6804",
     priceRupees: initialData ? (initialData.defaultPricePaise / 100).toString() : "",
+    purchasePriceRupees:
+      initialData?.purchasePricePaise != null
+        ? (initialData.purchasePricePaise / 100).toString()
+        : "",
+    purchasePriceDate: toDateInputValue(initialData?.purchasePriceDate),
     categoryId: initialData?.categoryId || categories.find((c) => c.parentId)?.id || categories[0]?.id || "",
     isActive: initialData?.isActive ?? true,
   });
@@ -71,6 +85,8 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
         hsnCode: form.hsnCode,
         gstRateBps: DEFAULT_GST_RATE_PERCENT * 100,
         defaultPriceRupees: parseFloat(form.priceRupees),
+        purchasePriceRupees: form.purchasePriceRupees,
+        purchasePriceDate: form.purchasePriceDate || null,
         categoryId: form.categoryId,
         isActive: form.isActive,
         images: JSON.stringify(images),
@@ -167,6 +183,37 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
               onChange={(e) => setForm({ ...form, priceRupees: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg text-sm"
             />
+          </div>
+          <div className="sm:col-span-2 rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-900">Purchase cost (admin only)</p>
+              <p className="text-xs text-amber-800/80 mt-0.5">
+                Not shown to clients on the storefront or invoices.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium block mb-1">Purchase Price (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.purchasePriceRupees}
+                  onChange={(e) => setForm({ ...form, purchasePriceRupees: e.target.value })}
+                  placeholder="Optional"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-1">Purchase Price Date</label>
+                <input
+                  type="date"
+                  value={form.purchasePriceDate}
+                  onChange={(e) => setForm({ ...form, purchasePriceDate: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                />
+              </div>
+            </div>
           </div>
           <div className="sm:col-span-2">
             <label className="text-sm font-medium block mb-1">Description *</label>

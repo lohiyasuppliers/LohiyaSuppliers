@@ -28,6 +28,8 @@ export default function CheckoutPage() {
   const [paidAtCheckout, setPaidAtCheckout] = useState(0);
   const [rewardChoice, setRewardChoice] = useState<B2bRewardChoice>("none");
   const [useWalletBalance, setUseWalletBalance] = useState(false);
+  const [includeGst, setIncludeGst] = useState(true);
+  const [allowGstChoice, setAllowGstChoice] = useState(false);
   const [notes, setNotes] = useState("");
 
   const applyDiscount = rewardChoice === "discount";
@@ -44,26 +46,38 @@ export default function CheckoutPage() {
   );
 
   const grossFallback = useMemo(() => {
-    const tax = items.reduce(
-      (sum, i) => sum + Math.round((i.pricePaise * i.quantity * i.gstRateBps) / 10000),
-      0
-    );
+    const tax = includeGst
+      ? items.reduce(
+          (sum, i) => sum + Math.round((i.pricePaise * i.quantity * i.gstRateBps) / 10000),
+          0
+        )
+      : 0;
     return subtotalPaise + tax;
-  }, [items, subtotalPaise]);
+  }, [items, subtotalPaise, includeGst]);
 
   const { quote: activeQuote, loading: quoteLoading, error: quoteError } = useCheckoutQuote(
     checkoutItems,
     rewardChoice,
-    useWalletBalance
+    useWalletBalance,
+    includeGst
   );
+
+  useEffect(() => {
+    if (activeQuote?.allowGstChoice != null) {
+      setAllowGstChoice(!!activeQuote.allowGstChoice);
+      if (!activeQuote.allowGstChoice) setIncludeGst(true);
+    }
+  }, [activeQuote?.allowGstChoice]);
 
   const payableTotal = activeQuote?.payableTotalPaise ?? grossFallback;
   const taxPaise =
     activeQuote?.taxPaise ??
-    items.reduce(
-      (sum, i) => sum + Math.round((i.pricePaise * i.quantity * i.gstRateBps) / 10000),
-      0
-    );
+    (includeGst
+      ? items.reduce(
+          (sum, i) => sum + Math.round((i.pricePaise * i.quantity * i.gstRateBps) / 10000),
+          0
+        )
+      : 0);
   const lineDisplay = useMemo(() => {
     if (activeQuote?.orderItems?.length) {
       return activeQuote.orderItems.map((line) => ({
@@ -128,6 +142,7 @@ export default function CheckoutPage() {
           useCashback: applyCashback,
           useDiscount: applyDiscount,
           useWalletBalance,
+          includeGst,
         }),
       });
       const data = await res.json();
@@ -186,6 +201,41 @@ export default function CheckoutPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 stagger-children">
         <div className="lg:col-span-2 space-y-6">
+          {allowGstChoice && (
+            <div className="bg-white rounded-xl border p-5">
+              <h2 className="font-bold text-lg text-gray-900 mb-1">GST option</h2>
+              <p className="text-sm text-gray-500 mb-4">
+                Your account allows you to choose whether to pay with or without 18% GST.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIncludeGst(true)}
+                  className={`rounded-xl border-2 px-4 py-3 text-left transition-colors ${
+                    includeGst
+                      ? "border-brand-600 bg-brand-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="font-semibold text-gray-900">Pay with 18% GST</div>
+                  <div className="text-xs text-gray-500 mt-1">Standard billed amount including GST</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIncludeGst(false)}
+                  className={`rounded-xl border-2 px-4 py-3 text-left transition-colors ${
+                    !includeGst
+                      ? "border-brand-600 bg-brand-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="font-semibold text-gray-900">Pay without GST</div>
+                  <div className="text-xs text-gray-500 mt-1">Subtotal only — no GST added</div>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* B2B choice FIRST — always visible */}
           <CheckoutBillOptions
             quote={activeQuote}
@@ -270,7 +320,9 @@ export default function CheckoutPage() {
               <span>{formatPaise(activeQuote?.subtotalPaise ?? subtotalPaise)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">GST @ {DEFAULT_GST_RATE_PERCENT}%</span>
+              <span className="text-gray-500">
+                {includeGst ? `GST @ ${DEFAULT_GST_RATE_PERCENT}%` : "GST (not applied)"}
+              </span>
               <span>{formatPaise(taxPaise)}</span>
             </div>
             {activeQuote && activeQuote.discountPaise > 0 && (
@@ -339,6 +391,7 @@ export default function CheckoutPage() {
             rewardChoice,
             initialRewardChoice: rewardChoice,
             useWalletBalance,
+            includeGst,
           }}
           onCheckoutSuccess={handleCheckoutSuccess}
           onClose={() => setScannerOpen(false)}

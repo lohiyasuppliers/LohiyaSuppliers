@@ -137,6 +137,8 @@ model ClientProfile {
   pincode              String?
   country              String  @default("India")
   cashbackBalancePaise Int     @default(0)
+  /// When true, client may choose at checkout to pay with 18% GST or without GST
+  allowGstChoice       Boolean @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
@@ -177,6 +179,9 @@ model Product {
   hsnCode           String   @default("")
   gstRateBps        Int      @default(1800) // basis points: 1800 = 18%
   defaultPricePaise Int
+  /// Admin-only cost tracking — never exposed to storefront clients
+  purchasePricePaise Int?
+  purchasePriceDate  DateTime?
   images            String   @default("[]")
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())

@@ -46,6 +46,8 @@ export interface CheckoutQuote {
   availableCashbackPaise: number;
   lockedCashbackPaise: number;
   requiresPayNow: boolean;
+  allowGstChoice: boolean;
+  includeGst: boolean;
   lineBreakdown: CheckoutQuoteLineBreakdown[];
   orderItems: Array<{
     productId: string;
@@ -68,11 +70,21 @@ export async function buildCheckoutQuote(
     useCashback?: boolean;
     applyCashbackPaise?: number;
     useWalletBalance?: boolean;
+    /** When false, tax is 0. Defaults to true. Only honored if client has allowGstChoice. */
+    includeGst?: boolean;
   }
 ): Promise<CheckoutQuote> {
   if (options?.useDiscount && options?.useCashback) {
     throw new Error("Choose discount or cashback — not both");
   }
+
+  const profile = await prisma.clientProfile.findUnique({
+    where: { userId: clientId },
+    select: { allowGstChoice: true },
+  });
+
+  const includeGst =
+    profile?.allowGstChoice && options?.includeGst === false ? false : true;
 
   const productIds = [...new Set(items.map((i) => i.productId))];
   const products = await prisma.product.findMany({
@@ -118,7 +130,8 @@ export async function buildCheckoutQuote(
     );
 
     const lineTotal = unitPricePaise * item.quantity;
-    const lineTax = Math.round((lineTotal * product.gstRateBps) / 10000);
+    const effectiveGstBps = includeGst ? product.gstRateBps : 0;
+    const lineTax = Math.round((lineTotal * effectiveGstBps) / 10000);
     subtotalPaise += lineTotal;
     taxPaise += lineTax;
 
@@ -129,7 +142,7 @@ export async function buildCheckoutQuote(
       productName: product.name,
       variationLabel: attrs ? Object.values(attrs).join(" · ") : null,
       hsnCode: product.hsnCode,
-      gstRateBps: product.gstRateBps,
+      gstRateBps: effectiveGstBps,
       quantity: item.quantity,
       unitPricePaise,
       totalPaise: lineTotal,
@@ -219,6 +232,8 @@ export async function buildCheckoutQuote(
     availableCashbackPaise: wallet.availablePaise,
     lockedCashbackPaise: wallet.lockedPaise,
     requiresPayNow: !!options?.useDiscount,
+    allowGstChoice: !!profile?.allowGstChoice,
+    includeGst,
     lineBreakdown,
     orderItems,
   };

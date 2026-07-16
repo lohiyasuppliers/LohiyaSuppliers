@@ -20,6 +20,8 @@ export type CheckoutQuoteData = {
   availableCashbackPaise: number;
   lockedCashbackPaise: number;
   requiresPayNow?: boolean;
+  allowGstChoice?: boolean;
+  includeGst?: boolean;
   orderItems?: Array<{
     productId: string;
     variationId: string | null;
@@ -42,7 +44,8 @@ export type B2bRewardChoice = "none" | "discount" | "cashback";
 export function useCheckoutQuote(
   items: Array<{ productId: string; variationId?: string; quantity: number }>,
   choice: B2bRewardChoice,
-  useWalletBalance = false
+  useWalletBalance = false,
+  includeGst = true
 ) {
   const [quote, setQuote] = useState<CheckoutQuoteData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -70,7 +73,7 @@ export function useCheckoutQuote(
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
         credentials: "include",
-        body: JSON.stringify({ items, useDiscount, useCashback, useWalletBalance }),
+        body: JSON.stringify({ items, useDiscount, useCashback, useWalletBalance, includeGst }),
       })
         .then(async (r) => {
           const data = await r.json();
@@ -94,7 +97,7 @@ export function useCheckoutQuote(
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [itemsKey, useDiscount, useCashback, useWalletBalance]);
+  }, [itemsKey, useDiscount, useCashback, useWalletBalance, includeGst]);
 
   return { quote, loading, error };
 }

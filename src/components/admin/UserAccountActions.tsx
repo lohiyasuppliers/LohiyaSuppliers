@@ -81,11 +81,17 @@ export function UserAccountActions({
   }
 
   const btn = compact
-    ? "inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium disabled:opacity-50"
-    : "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50";
+    ? "inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 shrink-0"
+    : "inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50";
 
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${compact ? "" : "mt-4 pt-4 border-t"}`}>
+    <div
+      className={
+        compact
+          ? "flex flex-row flex-wrap items-center justify-end gap-1.5"
+          : "flex flex-wrap items-center gap-2 mt-4 pt-4 border-t"
+      }
+    >
       {isActive ? (
         <button
           type="button"
@@ -93,8 +99,8 @@ export function UserAccountActions({
           disabled={loading !== null}
           className={`${btn} border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100`}
         >
-          <Ban className="w-3.5 h-3.5" />
-          {loading === "suspend" ? "Suspending…" : "Suspend"}
+          <Ban className="w-3.5 h-3.5 shrink-0" />
+          {loading === "suspend" ? "…" : "Suspend"}
         </button>
       ) : (
         <button
@@ -103,8 +109,8 @@ export function UserAccountActions({
           disabled={loading !== null}
           className={`${btn} border border-green-200 text-green-800 bg-green-50 hover:bg-green-100`}
         >
-          <CheckCircle className="w-3.5 h-3.5" />
-          {loading === "suspend" ? "Saving…" : "Reactivate"}
+          <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+          {loading === "suspend" ? "…" : "Reactivate"}
         </button>
       )}
       <button
@@ -112,9 +118,10 @@ export function UserAccountActions({
         onClick={handleDelete}
         disabled={loading !== null}
         className={`${btn} border border-red-200 text-red-700 bg-red-50 hover:bg-red-100`}
+        title="Delete permanently"
       >
-        <Trash2 className="w-3.5 h-3.5" />
-        {loading === "delete" ? "Deleting…" : "Delete permanently"}
+        <Trash2 className="w-3.5 h-3.5 shrink-0" />
+        {loading === "delete" ? "…" : compact ? "Delete" : "Delete permanently"}
       </button>
     </div>
   );

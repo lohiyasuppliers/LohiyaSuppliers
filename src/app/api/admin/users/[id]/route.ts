@@ -64,6 +64,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (data.address !== undefined) profileUpdate.address = data.address;
   if (data.city !== undefined) profileUpdate.city = data.city;
   if (data.pincode !== undefined) profileUpdate.pincode = data.pincode;
+  if (data.allowGstChoice !== undefined) profileUpdate.allowGstChoice = !!data.allowGstChoice;
 
   const user = await prisma.user.update({
     where: { id },
@@ -76,6 +77,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
                 create: {
                   company: (profileUpdate.company as string) || "—",
                   billingState: (profileUpdate.billingState as string) || "—",
+                  allowGstChoice: false,
                   ...profileUpdate,
                 },
                 update: profileUpdate,

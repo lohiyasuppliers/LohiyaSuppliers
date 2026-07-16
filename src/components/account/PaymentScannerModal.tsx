@@ -30,6 +30,7 @@ export interface CheckoutPayload {
   rewardChoice?: B2bRewardChoice;
   initialRewardChoice?: B2bRewardChoice;
   useWalletBalance?: boolean;
+  includeGst?: boolean;
 }
 
 interface PaymentScannerModalProps {
@@ -83,11 +84,17 @@ function PaymentScannerModalInner({
   const [useWalletBalance, setUseWalletBalance] = useState(
     checkout?.useWalletBalance ?? false
   );
+  const [includeGst, setIncludeGst] = useState(checkout?.includeGst ?? true);
+
+  useEffect(() => {
+    if (checkout?.includeGst !== undefined) setIncludeGst(checkout.includeGst);
+  }, [checkout?.includeGst]);
 
   const { quote: checkoutQuote, loading: quoteLoading, error: quoteError } = useCheckoutQuote(
     checkout?.items ?? [],
     rewardChoice,
-    useWalletBalance
+    useWalletBalance,
+    includeGst
   );
 
   const checkoutPayable = checkoutQuote?.payableTotalPaise ?? totalDuePaise;
@@ -174,6 +181,7 @@ function PaymentScannerModalInner({
             useDiscount: rewardChoice === "discount",
             useCashback: rewardChoice === "cashback",
             useWalletBalance,
+            includeGst,
             proof: proofBody,
           }),
         });

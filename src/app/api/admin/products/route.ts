@@ -17,6 +17,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  const purchasePricePaise =
+    body.purchasePriceRupees === "" || body.purchasePriceRupees == null
+      ? null
+      : rupeesToPaise(Number(body.purchasePriceRupees));
+  const purchaseDateRaw = body.purchasePriceDate
+    ? new Date(body.purchasePriceDate)
+    : null;
+  const purchasePriceDate =
+    purchaseDateRaw && !Number.isNaN(purchaseDateRaw.getTime()) ? purchaseDateRaw : null;
+
   const product = await prisma.product.create({
     data: {
       name: body.name,
@@ -27,6 +37,8 @@ export async function POST(req: Request) {
       hsnCode: body.hsnCode,
       gstRateBps: body.gstRateBps ?? DEFAULT_GST_RATE_BPS,
       defaultPricePaise: rupeesToPaise(Number(body.defaultPriceRupees)),
+      purchasePricePaise,
+      purchasePriceDate,
       images: body.images || "[]",
       isActive: body.isActive ?? true,
     },
