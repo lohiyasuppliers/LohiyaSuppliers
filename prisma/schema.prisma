@@ -527,6 +527,20 @@ model AdminNotification {
   @@index([isRead, createdAt])
 }
 
+// ─── Durable media (MongoDB) — survives Render redeploys ─────────────────────
+
+model MediaAsset {
+  id          String   @id @default(cuid()) @map("_id")
+  filename    String
+  contentType String
+  /// Base64-encoded file bytes (durable on Atlas; Render disk is ephemeral)
+  dataBase64  String
+  byteSize    Int
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // ─── Platform settings ───────────────────────────────────────────────────────
 
 model PlatformSetting {

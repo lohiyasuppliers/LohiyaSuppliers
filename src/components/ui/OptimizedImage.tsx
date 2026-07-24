@@ -42,7 +42,10 @@ export function OptimizedImage({
     );
   }
 
-  const isLocal = activeSrc.startsWith("/");
+  const isLocal =
+    activeSrc.startsWith("/") ||
+    activeSrc.startsWith("data:") ||
+    activeSrc.includes("/api/media/");
 
   return (
     <div className="relative w-full h-full min-h-[1px]">

@@ -9,8 +9,13 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   experimental: {
     optimizePackageImports: ["lucide-react", "recharts"],
+    serverActions: {
+      bodySizeLimit: "12mb",
+    },
   },
   serverExternalPackages: ["@prisma/client", "prisma"],
+  // Allow larger multipart uploads for product photos
+  // (App Router route handlers respect this via proxy/body parser limits on Node)
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

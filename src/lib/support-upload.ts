@@ -1,8 +1,7 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
+import { saveMediaAsset } from "@/lib/media-upload";
 
-const MAX_BYTES = 15 * 1024 * 1024;
+const MAX_BYTES = 8 * 1024 * 1024; // base64 fits under MongoDB 16MB doc limit
 
 const ALLOWED_TYPES = new Set([
   "image/jpeg",
@@ -44,25 +43,36 @@ export async function saveSupportUpload(formData: FormData) {
 
   if (file.size > MAX_BYTES) {
     return {
-      error: NextResponse.json({ error: "File must be under 15MB" }, { status: 400 }),
+      error: NextResponse.json(
+        { error: "File must be under 8MB so it can be stored securely" },
+        { status: 400 }
+      ),
     };
   }
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const ext = file.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "") || "bin";
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "support");
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const saved = await saveMediaAsset({
+      buffer,
+      contentType: file.type,
+      filename: file.name || `support-${Date.now()}`,
+    });
 
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, filename), buffer);
+    const attachment: SupportAttachment = {
+      url: saved.url,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+    };
 
-  const attachment: SupportAttachment = {
-    url: `/uploads/support/${filename}`,
-    name: file.name,
-    type: file.type,
-    size: file.size,
-  };
-
-  return { attachment };
+    return { attachment };
+  } catch (err) {
+    console.error("Support upload failed:", err);
+    return {
+      error: NextResponse.json(
+        { error: err instanceof Error ? err.message : "Failed to save upload" },
+        { status: 500 }
+      ),
+    };
+  }
 }

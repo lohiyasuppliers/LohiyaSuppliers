@@ -19,6 +19,10 @@ export function CatalogImage({
   sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
 }: CatalogImageProps) {
   const resolved = normalizeImageUrl(src) || CATALOG_IMAGES.productDefault;
+  const unoptimized =
+    resolved.startsWith("/") ||
+    resolved.startsWith("data:") ||
+    resolved.includes("/api/media/");
 
   return (
     <div className="relative w-full h-full min-h-[1px]">
@@ -28,7 +32,7 @@ export function CatalogImage({
         fill
         sizes={sizes}
         priority={priority}
-        unoptimized={resolved.startsWith("/")}
+        unoptimized={unoptimized}
         className={cn("object-cover", className)}
       />
     </div>
