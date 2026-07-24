@@ -1,9 +1,10 @@
 import { Resend } from "resend";
-import { DEFAULT_PLATFORM_SETTINGS } from "@/lib/constants";
 
 function getFromAddress() {
-  const contact = process.env.CONTACT_EMAIL || DEFAULT_PLATFORM_SETTINGS.contact_email;
-  return `Lohiya Suppliers <${contact || "onboarding@resend.dev"}>`;
+  // Resend requires a verified domain for custom from-addresses.
+  // Default to Resend's onboarding sender until a domain is verified.
+  if (process.env.RESEND_FROM) return process.env.RESEND_FROM;
+  return "Lohiya Suppliers <onboarding@resend.dev>";
 }
 
 export async function sendEmail(opts: {

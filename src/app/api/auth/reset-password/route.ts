@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { apiError, parseJsonBody } from "@/lib/api";
-import { Role } from "@prisma/client";
 
 export async function POST(req: Request) {
   const body = await parseJsonBody<{
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || user.role === Role.ADMIN) {
+  if (!user || !user.isActive) {
     return apiError("Invalid or expired reset code", 400);
   }
 

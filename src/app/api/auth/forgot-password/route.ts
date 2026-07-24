@@ -3,7 +3,6 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { apiError, parseJsonBody } from "@/lib/api";
 import { sendPasswordResetOtp } from "@/lib/email";
-import { Role } from "@prisma/client";
 
 function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
   });
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user || user.role === Role.ADMIN || !user.isActive) {
+  if (!user || !user.isActive) {
     return generic;
   }
 
