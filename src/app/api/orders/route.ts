@@ -8,6 +8,8 @@ import { applyCashbackAtCheckout } from "@/lib/cashback-wallet";
 import { generateOrderNumber } from "@/lib/utils";
 import { paymentStateFromPaid, isValidPaymentProof, type PaymentProofInput } from "@/lib/payable-orders";
 import { OrderType, PaymentStatus, Role } from "@prisma/client";
+import { createAdminNotification } from "@/lib/admin-notifications";
+import { formatPaise } from "@/lib/money";
 
 interface OrderItemInput {
   productId: string;
@@ -148,6 +150,22 @@ export async function POST(req: Request) {
 
       return created;
     });
+
+    await createAdminNotification({
+      type: "ORDER",
+      title: "New order placed",
+      body: `${order.orderNumber} · ${formatPaise(totalPaise)} · ${user?.name || user?.email || "Client"}`,
+      href: `/admin/orders/${order.id}`,
+    });
+
+    if (paymentStatus === PaymentStatus.PENDING_VERIFICATION) {
+      await createAdminNotification({
+        type: "PAYMENT",
+        title: "Payment awaiting verification",
+        body: `${order.orderNumber} · ${formatPaise(paidNowPaise)} submitted`,
+        href: `/admin/orders/${order.id}`,
+      });
+    }
 
     return NextResponse.json({
       orderNumber: order.orderNumber,

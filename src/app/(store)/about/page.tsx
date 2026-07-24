@@ -14,6 +14,7 @@ import { AboutCapabilitiesGrid } from "@/components/about/AboutCapabilitiesGrid"
 import { AboutMilestoneTimeline } from "@/components/about/AboutMilestoneTimeline";
 
 export const metadata = { title: "About Us" };
+export const revalidate = 60;
 
 const TEAM = [
   {

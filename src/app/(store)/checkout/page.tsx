@@ -69,6 +69,15 @@ export default function CheckoutPage() {
     }
   }, [activeQuote?.allowGstChoice]);
 
+  useEffect(() => {
+    if (!activeQuote || rewardChoice !== "none") return;
+    if ((activeQuote.potentialDiscountPaise ?? 0) > 0) {
+      setRewardChoice("discount");
+    } else if ((activeQuote.potentialCashbackPaise ?? 0) > 0) {
+      setRewardChoice("cashback");
+    }
+  }, [activeQuote, rewardChoice]);
+
   const payableTotal = activeQuote?.payableTotalPaise ?? grossFallback;
   const taxPaise =
     activeQuote?.taxPaise ??

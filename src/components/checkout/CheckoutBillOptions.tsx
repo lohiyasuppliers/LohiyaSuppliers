@@ -1,7 +1,7 @@
 "use client";
 
 import { formatPaise } from "@/lib/utils";
-import { Gift, Tag, AlertCircle, Circle, CheckCircle2, Wallet } from "lucide-react";
+import { Gift, Tag, AlertCircle, CheckCircle2, Wallet } from "lucide-react";
 import type { B2bRewardChoice, CheckoutQuoteData } from "./CheckoutRewardsPanel";
 
 export function CheckoutBillOptions({
@@ -32,51 +32,35 @@ export function CheckoutBillOptions({
   const gross = quote?.grossTotalPaise ?? grossFallback ?? 0;
   const payable = quote?.payableTotalPaise ?? grossFallback ?? gross;
   const walletApplied = quote?.walletAppliedPaise ?? 0;
+  const noSavings = !loading && !hasDiscount && !hasCashback;
 
   const options: Array<{
     id: B2bRewardChoice;
     label: string;
     sub: string;
-    amount?: number;
-    amountPrefix?: string;
     icon: typeof Tag;
     color: string;
-    disabled?: boolean;
-    disabledReason?: string;
-  }> = [
-    {
-      id: "none",
-      label: "No discount / cashback",
-      sub: "Pay full bill · pay now or pay later",
-      icon: Circle,
-      color: "gray",
-    },
-    {
+  }> = [];
+
+  if (hasDiscount || (loading && !quote)) {
+    options.push({
       id: "discount",
       label: "Use product discount",
-      sub: hasDiscount
-        ? `−${formatPaise(quote!.potentialDiscountPaise)} off · pay now only`
-        : "Not configured for items in cart",
-      amount: quote?.potentialDiscountPaise,
+      sub: "Discount available · pay now only",
       icon: Tag,
       color: "emerald",
-      disabled: !hasDiscount && !loading,
-      disabledReason: "Admin has not set discount for these products",
-    },
-    {
+    });
+  }
+
+  if (hasCashback || (loading && !quote)) {
+    options.push({
       id: "cashback",
       label: "Earn product cashback",
-      sub: hasCashback
-        ? `${formatPaise(quote!.potentialCashbackPaise)} to locked wallet · unlocks after full payment`
-        : "Not configured for items in cart",
-      amount: quote?.potentialCashbackPaise,
-      amountPrefix: "+",
+      sub: "Cashback available · unlocks after payment",
       icon: Gift,
       color: "amber",
-      disabled: !hasCashback && !loading,
-      disabledReason: "Admin has not set cashback for these products",
-    },
-  ];
+    });
+  }
 
   return (
     <div
@@ -87,8 +71,8 @@ export function CheckoutBillOptions({
       <div className="mb-4">
         <h2 className="font-bold text-gray-900 text-base">B2B savings — choose one</h2>
         <p className="text-xs text-gray-500 mt-1">
-          Discount and cashback cannot be used together. Amounts are per product/variant set by
-          admin (e.g. ₹10/unit × quantity).
+          Discount and cashback cannot be used together. Amounts are based on your account pricing
+          (e.g. ₹10/unit × quantity).
         </p>
       </div>
 
@@ -99,75 +83,54 @@ export function CheckoutBillOptions({
         </p>
       )}
 
-      <div className="space-y-2">
-        {options.map((opt) => {
-          const selected = choice === opt.id;
-          const Icon = opt.icon;
-          const isDisabled = opt.disabled && opt.id !== "none";
+      {noSavings ? (
+        <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+          No savings configured — pay full amount
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {options.map((opt) => {
+            const selected = choice === opt.id;
+            const Icon = opt.icon;
 
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              disabled={isDisabled}
-              onClick={() => !isDisabled && onChoiceChange(opt.id)}
-              className={`w-full text-left flex items-start gap-3 p-4 rounded-xl border-2 transition-all ${
-                isDisabled
-                  ? "opacity-45 cursor-not-allowed border-gray-100 bg-gray-50"
-                  : selected
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onChoiceChange(opt.id)}
+                className={`w-full text-left flex items-start gap-3 p-4 rounded-xl border-2 transition-all ${
+                  selected
                     ? opt.color === "emerald"
                       ? "border-emerald-400 bg-emerald-50 ring-1 ring-emerald-200"
-                      : opt.color === "amber"
-                        ? "border-amber-400 bg-amber-50 ring-1 ring-amber-200"
-                        : "border-brand-400 bg-brand-50 ring-1 ring-brand-200"
+                      : "border-amber-400 bg-amber-50 ring-1 ring-amber-200"
                     : "border-gray-200 bg-white hover:border-brand-300 hover:bg-gray-50/80"
-              }`}
-            >
-              <span
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                  selected
-                    ? "border-brand-600 bg-brand-600 text-white"
-                    : "border-gray-300 bg-white"
                 }`}
               >
-                {selected && <CheckCircle2 className="w-3.5 h-3.5" />}
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="flex items-center gap-2 font-semibold text-gray-900">
-                  <Icon
-                    className={`w-4 h-4 ${
-                      opt.color === "emerald"
-                        ? "text-emerald-600"
-                        : opt.color === "amber"
-                          ? "text-amber-600"
-                          : "text-gray-400"
-                    }`}
-                  />
-                  {opt.label}
-                </span>
-                <span className="block text-xs text-gray-500 mt-0.5">{opt.sub}</span>
-                {isDisabled && opt.disabledReason && (
-                  <span className="block text-xs text-gray-400 mt-1">{opt.disabledReason}</span>
-                )}
-              </span>
-              {opt.amount != null && opt.amount > 0 && (
                 <span
-                  className={`shrink-0 font-bold text-sm ${
-                    opt.color === "emerald"
-                      ? "text-emerald-700"
-                      : opt.color === "amber"
-                        ? "text-amber-700"
-                        : "text-gray-600"
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                    selected
+                      ? "border-brand-600 bg-brand-600 text-white"
+                      : "border-gray-300 bg-white"
                   }`}
                 >
-                  {opt.amountPrefix ?? "−"}
-                  {formatPaise(opt.amount)}
+                  {selected && <CheckCircle2 className="w-3.5 h-3.5" />}
                 </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                <span className="flex-1 min-w-0">
+                  <span className="flex items-center gap-2 font-semibold text-gray-900">
+                    <Icon
+                      className={`w-4 h-4 ${
+                        opt.color === "emerald" ? "text-emerald-600" : "text-amber-600"
+                      }`}
+                    />
+                    {opt.label}
+                  </span>
+                  <span className="block text-xs text-gray-500 mt-0.5">{opt.sub}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {hasWallet && onWalletBalanceChange && (
         <div className="mt-4 pt-4 border-t border-gray-100">
@@ -225,35 +188,6 @@ export function CheckoutBillOptions({
           Pay the full bill now or later. Cashback is credited to your wallet (locked) and unlocks
           once this order is fully paid — use it for UPI, future orders, or gift cards.
         </p>
-      )}
-
-      {quote?.lineBreakdown?.some(
-        (l) => l.discountPaise > 0 || l.cashbackRebatePaise > 0
-      ) && (
-        <div className="mt-4 rounded-lg bg-gray-50 border border-gray-100 p-3 space-y-1.5 text-xs">
-          <p className="font-semibold text-gray-700">Per line (admin rules)</p>
-          {quote.lineBreakdown.map((line, i) => {
-            if (line.discountPaise <= 0 && line.cashbackRebatePaise <= 0) return null;
-            const label = line.variationLabel
-              ? `${line.productName} (${line.variationLabel})`
-              : line.productName;
-            return (
-              <div key={i} className="flex justify-between gap-2 text-gray-600">
-                <span>
-                  {label} × {line.quantity}
-                </span>
-                <span>
-                  {line.discountPaise > 0 && (
-                    <span className="text-emerald-700 mr-2">disc −{formatPaise(line.discountPaise)}</span>
-                  )}
-                  {line.cashbackRebatePaise > 0 && (
-                    <span className="text-amber-700">cb +{formatPaise(line.cashbackRebatePaise)}</span>
-                  )}
-                </span>
-              </div>
-            );
-          })}
-        </div>
       )}
 
       <div className="mt-4 pt-4 border-t border-gray-100 space-y-1.5">

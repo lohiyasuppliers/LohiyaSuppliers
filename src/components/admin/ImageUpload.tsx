@@ -9,6 +9,10 @@ interface ImageUploadProps {
   onChange: (images: string[]) => void;
 }
 
+function isLocalUploadPath(url: string) {
+  return url.startsWith("/") || url.startsWith("/uploads/");
+}
+
 export function ImageUpload({ images, onChange }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -19,18 +23,31 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
 
     setUploading(true);
     const newUrls: string[] = [];
+    const errors: string[] = [];
 
     for (const file of Array.from(files)) {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
-      if (res.ok) {
-        const { url } = await res.json();
-        newUrls.push(url);
+      try {
+        const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.url) {
+          newUrls.push(data.url);
+        } else {
+          errors.push(data.error || `Failed to upload ${file.name}`);
+        }
+      } catch {
+        errors.push(`Failed to upload ${file.name}`);
       }
     }
 
-    onChange([...images, ...newUrls]);
+    if (newUrls.length) {
+      onChange([...images, ...newUrls]);
+    }
+    if (errors.length) {
+      alert(errors.join("\n"));
+    }
+
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -45,7 +62,13 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
       <div className="flex flex-wrap gap-3">
         {images.map((url, i) => (
           <div key={url} className="relative w-24 h-24 rounded-lg border overflow-hidden group">
-            <Image src={url} alt={`Product ${i + 1}`} fill className="object-cover" />
+            <Image
+              src={url}
+              alt={`Product ${i + 1}`}
+              fill
+              className="object-cover"
+              unoptimized={isLocalUploadPath(url)}
+            />
             <button
               type="button"
               onClick={() => removeImage(i)}

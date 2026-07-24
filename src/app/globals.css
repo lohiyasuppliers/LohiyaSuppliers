@@ -330,6 +330,13 @@
     .animate-scale-in,
     .animate-pop-in,
     .animate-slide-up,
+    .animate-ken-burns,
+    .hero-ken-burns,
+    .hero-image-fade,
+    .hero-text-enter,
+    .hero-text-enter-delay,
+    .hero-cta-enter,
+    .section-enter,
     .motion-table-row,
     .motion-sidebar-item {
       animation: none !important;
@@ -399,6 +406,43 @@
   }
   .animate-ken-burns {
     animation: ken-burns 18s ease-out infinite alternate;
+  }
+
+  /* Hero — subtle industrial motion */
+  @keyframes hero-ken-burns {
+    0% { transform: scale(1.02) translate(0, 0); }
+    100% { transform: scale(1.08) translate(-1.2%, -0.6%); }
+  }
+  @keyframes hero-fade-cross {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes hero-text-enter {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes hero-cta-enter {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero-ken-burns {
+    animation: hero-ken-burns 22s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  .hero-image-fade {
+    animation: hero-fade-cross 0.85s ease-out both;
+  }
+  .hero-text-enter {
+    animation: hero-text-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .hero-text-enter-delay {
+    animation: hero-text-enter 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  }
+  .hero-cta-enter {
+    animation: hero-cta-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both;
+  }
+  .section-enter {
+    animation: fade-in-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .animate-glow-pulse {
     animation: glow-pulse 4s ease-in-out infinite;

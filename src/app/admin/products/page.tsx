@@ -85,6 +85,7 @@ export default async function AdminProductsPage({ searchParams }: Props) {
               <th className="text-left px-4 py-3 font-medium">Category</th>
               <th className="text-left px-4 py-3 font-medium">GST</th>
               <th className="text-left px-4 py-3 font-medium">Default Price</th>
+              <th className="text-left px-4 py-3 font-medium">Purchase</th>
               <th className="text-left px-4 py-3 font-medium">Variations</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="text-right px-4 py-3 font-medium">Actions</th>
@@ -114,6 +115,26 @@ export default async function AdminProductsPage({ searchParams }: Props) {
                 </td>
                 <td className="px-4 py-3">{product.gstRateBps / 100}%</td>
                 <td className="px-4 py-3 font-medium">{formatPaise(product.defaultPricePaise)}</td>
+                <td className="px-4 py-3 text-gray-600">
+                  {product.purchasePricePaise != null ? (
+                    <>
+                      <span className="font-medium text-gray-900">
+                        {formatPaise(product.purchasePricePaise)}
+                      </span>
+                      {product.purchasePriceDate && (
+                        <span className="block text-xs text-gray-400">
+                          {new Date(product.purchasePriceDate).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className="px-4 py-3">{product._count.variations}</td>
                 <td className="px-4 py-3">
                   <span

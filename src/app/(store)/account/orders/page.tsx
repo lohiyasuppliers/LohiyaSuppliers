@@ -10,7 +10,7 @@ import { getPayableOrders, orderBalancePaise, summarizePayable, canPayOrder, get
 import { getOrderWorkflowState } from "@/lib/order-workflow";
 import { OrderStatus } from "@prisma/client";
 import { Suspense } from "react";
-import { Package, FileText } from "lucide-react";
+import { Package, FileText, Download } from "lucide-react";
 
 export const metadata = { title: "My Orders" };
 export const revalidate = 0;
@@ -61,10 +61,19 @@ export default async function AccountOrdersPage({ searchParams }: Props) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <AccountPageHeader
-        title="My Orders"
-        subtitle="Track order status, payments, and order history"
-      />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <AccountPageHeader
+          title="My Orders"
+          subtitle="Track order status, payments, and order history"
+        />
+        <a
+          href="/api/account/orders/export"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 text-brand-700 bg-white rounded-xl text-sm font-medium hover:bg-brand-50 shrink-0 mt-1"
+        >
+          <Download className="w-4 h-4" />
+          Download orders CSV
+        </a>
+      </div>
       <AccountShell>
         {(paymentSummary.totalDuePaise > 0 || verificationOrders.length > 0) && (
           <div className="mb-6" id="outstanding-payments">

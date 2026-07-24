@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { apiError, parseJsonBody } from "@/lib/api";
 import { Role } from "@prisma/client";
 import { applyClientPayment, getPayableOrders, summarizePayable, type PaymentProofInput } from "@/lib/payable-orders";
-import { PaymentStatus } from "@prisma/client";
+import { createAdminNotification } from "@/lib/admin-notifications";
+import { formatPaise } from "@/lib/money";
 
 /** Aggregate payment submission for admin verification (FIFO). */
 export async function POST(req: Request) {
@@ -33,6 +34,14 @@ export async function POST(req: Request) {
   try {
     const paymentId = `SCANNER_DEMO_${Date.now()}`;
     const result = await applyClientPayment(clientId, body.amountPaise, paymentId, body.proof);
+
+    await createAdminNotification({
+      type: "PAYMENT",
+      title: "Payment awaiting verification",
+      body: `${formatPaise(body.amountPaise)} submitted by ${session.user.name || session.user.email}`,
+      href: "/admin/orders?filter=pending_payment",
+    });
+
     return NextResponse.json({
       ok: true,
       ...result,

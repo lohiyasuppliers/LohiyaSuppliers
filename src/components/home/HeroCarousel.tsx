@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 interface Banner {
@@ -42,40 +42,42 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
     <section className="relative text-white overflow-hidden min-h-[560px] md:min-h-[640px]">
       {slide.image ? (
         <>
-          <OptimizedImage
-            src={slide.image}
-            alt=""
-            priority={current === 0}
-            sizes="100vw"
-            className="object-cover scale-105"
-          />
+          <div key={slide.id} className="absolute inset-0 overflow-hidden hero-image-fade">
+            <OptimizedImage
+              src={slide.image}
+              alt=""
+              priority={current === 0}
+              sizes="100vw"
+              className="object-cover hero-ken-burns"
+            />
+          </div>
           <div className="absolute inset-0 bg-gradient-to-r from-brand-950/95 via-brand-900/75 to-brand-800/40" />
         </>
       ) : (
         <div className="absolute inset-0 gradient-hero" />
       )}
 
-      <div className="absolute inset-0 opacity-30 pointer-events-none">
-        <div className="absolute -top-20 right-1/4 w-[500px] h-[500px] bg-brand-400 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-white rounded-full blur-3xl opacity-20" />
+      <div className="absolute inset-0 opacity-25 pointer-events-none">
+        <div className="absolute -top-24 right-1/4 w-[420px] h-[420px] bg-brand-500/40 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-brand-300/20 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-16 md:py-24 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="animate-slide-in-left">
+          <div key={`copy-${slide.id}`} className="hero-text-enter">
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-sm font-medium mb-6 border border-white/20">
-              <Sparkles className="w-4 h-4 text-amber-300" />
+              <ShieldCheck className="w-4 h-4 text-brand-300" />
               Trusted B2B Industrial Partner
             </span>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6 tracking-tight">
+            <h1 className="hero-text-enter-delay text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] mb-6 tracking-tight">
               {slide.title}
             </h1>
             {slide.subtitle && (
-              <p className="text-lg md:text-xl text-brand-100 mb-8 leading-relaxed max-w-xl">
+              <p className="hero-text-enter-delay text-lg md:text-xl text-brand-100 mb-8 leading-relaxed max-w-xl">
                 {slide.subtitle}
               </p>
             )}
-            <div className="flex flex-wrap gap-4">
+            <div className="hero-cta-enter flex flex-wrap gap-4">
               <Link
                 href={slide.link || "/products"}
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-900 font-semibold rounded-2xl hover:bg-brand-50 transition-all hover:scale-[1.02] shadow-xl shadow-black/20"
@@ -92,7 +94,7 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
             </div>
           </div>
 
-          <div className="hidden lg:grid grid-cols-2 gap-4 animate-fade-in-up">
+          <div className="hidden lg:grid grid-cols-2 gap-4 stagger-children">
             {[
               { label: "Deerfros", color: "bg-red-500/90" },
               { label: "Leitz", color: "bg-blue-500/90" },

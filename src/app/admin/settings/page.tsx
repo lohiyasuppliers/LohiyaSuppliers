@@ -13,6 +13,10 @@ export default async function AdminSettingsPage() {
     business_address: settings.businessAddress,
     contact_email: settings.contactEmail,
     contact_phone: settings.contactPhone,
+    payment_upi_id: settings.paymentUpiId,
+    payment_upi_name: settings.paymentUpiName,
+    payment_qr_url: settings.paymentQrUrl,
+    payment_note: settings.paymentNote,
     allow_voucher_cashback_stack: settings.allowVoucherCashbackStack ? "true" : "false",
   };
 

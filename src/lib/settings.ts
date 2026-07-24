@@ -15,6 +15,10 @@ export async function getPlatformSettings() {
       "true",
     contactEmail: map.contact_email ?? DEFAULT_PLATFORM_SETTINGS.contact_email,
     contactPhone: map.contact_phone ?? DEFAULT_PLATFORM_SETTINGS.contact_phone,
+    paymentUpiId: map.payment_upi_id ?? DEFAULT_PLATFORM_SETTINGS.payment_upi_id,
+    paymentUpiName: map.payment_upi_name ?? DEFAULT_PLATFORM_SETTINGS.payment_upi_name,
+    paymentQrUrl: map.payment_qr_url ?? DEFAULT_PLATFORM_SETTINGS.payment_qr_url,
+    paymentNote: map.payment_note ?? DEFAULT_PLATFORM_SETTINGS.payment_note,
   };
 }
 

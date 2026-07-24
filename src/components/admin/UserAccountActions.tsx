@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Ban, CheckCircle, Trash2 } from "lucide-react";
+import { Ban, CheckCircle, KeyRound, Trash2 } from "lucide-react";
 
 interface Props {
   userId: string;
@@ -24,7 +24,7 @@ export function UserAccountActions({
   compact = false,
 }: Props) {
   const router = useRouter();
-  const [loading, setLoading] = useState<"suspend" | "delete" | null>(null);
+  const [loading, setLoading] = useState<"suspend" | "delete" | "password" | null>(null);
 
   if (!canManage || role === "ADMIN") {
     return (
@@ -80,6 +80,32 @@ export function UserAccountActions({
     }
   }
 
+  async function handleSetPassword() {
+    const password = prompt(`Set a new password for ${email} (min 6 characters):`);
+    if (password === null) return;
+    if (password.length < 6) {
+      alert("Password must be at least 6 characters");
+      return;
+    }
+    setLoading("password");
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Failed to set password");
+        return;
+      }
+      alert("Password updated");
+      router.refresh();
+    } finally {
+      setLoading(null);
+    }
+  }
+
   const btn = compact
     ? "inline-flex items-center gap-1.5 whitespace-nowrap px-2.5 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 shrink-0"
     : "inline-flex items-center gap-2 whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50";
@@ -92,6 +118,16 @@ export function UserAccountActions({
           : "flex flex-wrap items-center gap-2 mt-4 pt-4 border-t"
       }
     >
+      <button
+        type="button"
+        onClick={handleSetPassword}
+        disabled={loading !== null}
+        className={`${btn} border border-brand-200 text-brand-800 bg-brand-50 hover:bg-brand-100`}
+        title="Set password"
+      >
+        <KeyRound className="w-3.5 h-3.5 shrink-0" />
+        {loading === "password" ? "…" : "Set password"}
+      </button>
       {isActive ? (
         <button
           type="button"

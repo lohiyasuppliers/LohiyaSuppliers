@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -14,9 +15,10 @@ import {
   ChevronLeft,
   ChevronRight,
   IndianRupee,
-  Image,
+  Image as ImageIcon,
   Globe,
   Gift,
+  MessageCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -27,7 +29,8 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/users", label: "Clients", icon: Users },
-  { href: "/admin/banners", label: "Banners", icon: Image },
+  { href: "/admin/support", label: "Support", icon: MessageCircle },
+  { href: "/admin/banners", label: "Banners", icon: ImageIcon },
   { href: "/admin/rewards", label: "Discount & Cashback", icon: Gift },
   { href: "/admin/coupons", label: "Coupons", icon: IndianRupee },
   { href: "/admin/website", label: "Website", icon: Globe },
@@ -50,9 +53,13 @@ export function AdminSidebar() {
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-brand-400/20 to-transparent" />
 
       <div className="flex items-center gap-3 border-b border-white/10 p-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 font-bold text-sm shadow-lg shadow-brand-900/50">
-          LS
-        </div>
+        <Image
+          src="/logo.svg"
+          alt="Lohiya Suppliers"
+          width={40}
+          height={40}
+          className="h-10 w-10 shrink-0"
+        />
         {!collapsed && (
           <div className="admin-fade-in">
             <div className="text-sm font-bold tracking-tight">Lohiya Suppliers</div>

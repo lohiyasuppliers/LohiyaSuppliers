@@ -17,7 +17,7 @@ import {
 } from "@/lib/variations";
 import { Role } from "@/lib/catalog-shared";
 import { useProductPricing } from "@/context/ProductPricingContext";
-import { Minus, Plus, Tag, Gift } from "lucide-react";
+import { Minus, Plus, Tag } from "lucide-react";
 
 interface Variation {
   id: string;
@@ -40,7 +40,6 @@ interface ProductPurchaseProps {
 
 export function ProductPurchasePanel({ product, variations }: ProductPurchaseProps) {
   const { data: session, status } = useSession();
-  const isClient = session?.user?.role === Role.CLIENT;
   const isAdmin = session?.user?.role === Role.ADMIN;
 
   const normalizedVariations = useMemo(
@@ -76,10 +75,7 @@ export function ProductPurchasePanel({ product, variations }: ProductPurchasePro
   const {
     loading: loadingPrices,
     defaultPricePaise: defaultPrice,
-    isCustomPricing: customPricing,
     variationPrices: prices,
-    variationCashback,
-    productCashbackPaise,
   } = useProductPricing(product.defaultPricePaise);
 
   const selected = useMemo(
@@ -124,10 +120,6 @@ export function ProductPurchasePanel({ product, variations }: ProductPurchasePro
     ? prices[selected.id] ?? selected.defaultPricePaise ?? defaultPrice
     : defaultPrice;
 
-  const unitCashback = selected
-    ? variationCashback[selected.id] ?? productCashbackPaise
-    : productCashbackPaise;
-
   if (isAdmin) {
     return (
       <p className="mt-8 text-sm text-gray-500 rounded-xl border border-amber-100 bg-amber-50 p-4">
@@ -138,29 +130,15 @@ export function ProductPurchasePanel({ product, variations }: ProductPurchasePro
 
   return (
     <div className="mt-8 rounded-2xl border border-gray-100 bg-white p-6 shadow-lg shadow-brand-900/5 space-y-5 animate-fade-in-up">
-      {customPricing && isClient && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
-          Your custom B2B pricing applied
-        </span>
-      )}
-
-      {isClient && unitCashback > 0 && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800 border border-amber-100">
-          <Gift className="w-3.5 h-3.5" />
-          Earn {formatPaise(unitCashback)} cashback per unit
-        </span>
-      )}
-
       {!session && status !== "loading" && (
         <p className="text-sm text-slate-500 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
-          Prices shown are list prices.{" "}
           <Link
             href={`/login?callbackUrl=/products/${product.slug}`}
             className="text-brand-600 font-medium hover:underline"
           >
             Log in
           </Link>{" "}
-          for your custom B2B rates.
+          to see your account pricing.
         </p>
       )}
 

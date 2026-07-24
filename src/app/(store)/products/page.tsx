@@ -99,22 +99,24 @@ export default async function ProductsPage({ searchParams }: Props) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <ScrollReveal>
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 text-white p-8 md:p-12 mb-10">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-950 via-brand-800 to-brand-600 text-white p-8 md:p-12 mb-10 section-enter">
           <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute -top-20 -right-20 w-80 h-80 bg-white rounded-full blur-3xl animate-float" />
+            <div className="absolute -top-20 -right-20 w-80 h-80 bg-white rounded-full blur-3xl" />
           </div>
           <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="hero-text-enter flex items-center gap-3 mb-3">
               {PageIcon && <PageIcon className="w-8 h-8 text-brand-200" />}
               <span className="text-sm font-medium uppercase tracking-wider text-brand-200">
                 B2B Catalog
               </span>
             </div>
-            <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{pageTitle}</h1>
-            <p className="text-brand-100 mt-3 max-w-2xl text-lg">
+            <h1 className="hero-text-enter-delay text-3xl md:text-5xl font-bold tracking-tight">
+              {pageTitle}
+            </h1>
+            <p className="hero-text-enter-delay text-brand-100 mt-3 max-w-2xl text-lg">
               Premium abrasives & tools from Deerfros, Leitz, and AIPL — with per-client custom pricing.
             </p>
-            <div className="flex flex-wrap gap-3 mt-6">
+            <div className="hero-cta-enter flex flex-wrap gap-3 mt-6">
               <Link
                 href="/products"
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
@@ -125,19 +127,19 @@ export default async function ProductsPage({ searchParams }: Props) {
               </Link>
               <Link
                 href="/products?application=metal"
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   params.application === "metal" ? "bg-white text-brand-900" : "bg-white/10 hover:bg-white/20"
                 }`}
               >
-                ⚙️ Metal Application
+                <Wrench className="w-4 h-4" /> Metal Application
               </Link>
               <Link
                 href="/products?application=wood"
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   params.application === "wood" ? "bg-white text-brand-900" : "bg-white/10 hover:bg-white/20"
                 }`}
               >
-                🪵 Wood Application
+                <TreePine className="w-4 h-4" /> Wood Application
               </Link>
             </div>
           </div>

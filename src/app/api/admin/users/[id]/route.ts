@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { deleteUserPermanently } from "@/lib/delete-user";
@@ -56,6 +57,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (data.phone !== undefined) userUpdate.phone = data.phone;
   if (data.role !== undefined) userUpdate.role = data.role;
   if (data.isActive !== undefined) userUpdate.isActive = data.isActive;
+  if (data.password !== undefined) {
+    const password = String(data.password);
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+    }
+    userUpdate.password = await bcrypt.hash(password, 12);
+  }
 
   const profileUpdate: Record<string, unknown> = {};
   if (data.company !== undefined) profileUpdate.company = data.company;

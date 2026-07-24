@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { upsertPlatformSetting } from "@/lib/settings";
+import { revalidateSettings } from "@/lib/revalidate-catalog";
 
 export async function PUT(req: Request) {
   const auth = await requireAdminApi();
@@ -10,5 +11,6 @@ export async function PUT(req: Request) {
   for (const [key, value] of Object.entries(data)) {
     await upsertPlatformSetting(key, String(value));
   }
+  revalidateSettings();
   return NextResponse.json({ success: true });
 }

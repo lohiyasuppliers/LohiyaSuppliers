@@ -85,10 +85,36 @@ function PaymentScannerModalInner({
     checkout?.useWalletBalance ?? false
   );
   const [includeGst, setIncludeGst] = useState(checkout?.includeGst ?? true);
+  const [upiInfo, setUpiInfo] = useState<{
+    upiId: string;
+    upiName: string;
+    qrUrl: string;
+    note: string;
+  } | null>(null);
 
   useEffect(() => {
     if (checkout?.includeGst !== undefined) setIncludeGst(checkout.includeGst);
   }, [checkout?.includeGst]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/payments/upi")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && data) {
+          setUpiInfo({
+            upiId: data.upiId || "",
+            upiName: data.upiName || "",
+            qrUrl: data.qrUrl || "",
+            note: data.note || "",
+          });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const { quote: checkoutQuote, loading: quoteLoading, error: quoteError } = useCheckoutQuote(
     checkout?.items ?? [],
@@ -96,6 +122,15 @@ function PaymentScannerModalInner({
     useWalletBalance,
     includeGst
   );
+
+  useEffect(() => {
+    if (!checkout || !checkoutQuote || rewardChoice !== "none") return;
+    if ((checkoutQuote.potentialDiscountPaise ?? 0) > 0) {
+      setRewardChoice("discount");
+    } else if ((checkoutQuote.potentialCashbackPaise ?? 0) > 0) {
+      setRewardChoice("cashback");
+    }
+  }, [checkout, checkoutQuote, rewardChoice]);
 
   const checkoutPayable = checkoutQuote?.payableTotalPaise ?? totalDuePaise;
   const cap = checkout ? checkoutPayable : (maxAmountPaise ?? totalDuePaise);
@@ -428,15 +463,36 @@ function PaymentScannerModalInner({
               {/* QR scan area */}
               <div className="rounded-xl bg-gray-50 border border-gray-100 px-6 py-6 text-center">
                 <div className="relative inline-flex mb-4">
-                  <QrCode
-                    className={`h-16 w-16 text-brand-700 ${scanning ? "opacity-20" : ""}`}
-                  />
+                  {upiInfo?.qrUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={upiInfo.qrUrl}
+                      alt="UPI payment QR"
+                      className={`h-40 w-40 object-contain rounded-lg bg-white border border-gray-200 ${
+                        scanning ? "opacity-20" : ""
+                      }`}
+                    />
+                  ) : (
+                    <QrCode
+                      className={`h-16 w-16 text-brand-700 ${scanning ? "opacity-20" : ""}`}
+                    />
+                  )}
                   {scanning && (
                     <div className="absolute inset-0 overflow-hidden">
                       <div className="absolute inset-x-0 top-0 h-0.5 bg-brand-600 animate-[scan_1.2s_ease-in-out_infinite]" />
                     </div>
                   )}
                 </div>
+                {(upiInfo?.upiId || upiInfo?.upiName) && (
+                  <div className="mb-3 space-y-0.5">
+                    {upiInfo.upiName && (
+                      <p className="text-sm font-semibold text-gray-900">{upiInfo.upiName}</p>
+                    )}
+                    {upiInfo.upiId && (
+                      <p className="text-xs font-mono text-brand-700">{upiInfo.upiId}</p>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Amount to pay
                 </p>
@@ -444,8 +500,11 @@ function PaymentScannerModalInner({
                   {formatPaise(payAmountPaise)}
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
-                  {mode === "full" ? "Full payment" : "Partial payment"} via UPI scanner
+                  {mode === "full" ? "Full payment" : "Partial payment"} via UPI
                 </p>
+                {upiInfo?.note && (
+                  <p className="text-xs text-gray-400 mt-2 max-w-xs mx-auto">{upiInfo.note}</p>
+                )}
               </div>
             </div>
           )}

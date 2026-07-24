@@ -8,7 +8,12 @@ export function BannerActions({ bannerId }: { bannerId: string }) {
 
   async function handleDelete() {
     if (!confirm("Delete this banner?")) return;
-    await fetch(`/api/admin/banners/${bannerId}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/banners/${bannerId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(data.error || "Delete failed");
+      return;
+    }
     router.refresh();
   }
 

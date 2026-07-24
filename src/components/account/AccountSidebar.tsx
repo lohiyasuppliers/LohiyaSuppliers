@@ -11,6 +11,7 @@ import {
   ShoppingBag,
   Wallet,
   Gift,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/account/orders", label: "My Orders", icon: Package },
   { href: "/account/bills", label: "My Bills", icon: FileText },
   { href: "/account/cashback", label: "Cashback Wallet", icon: Gift },
+  { href: "/account/support", label: "Support", icon: MessageCircle },
   { href: "/account/profile", label: "Company Profile", icon: Building2 },
   { href: "/products", label: "Browse Catalog", icon: ShoppingBag },
 ];

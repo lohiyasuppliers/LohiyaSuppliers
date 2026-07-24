@@ -12,7 +12,6 @@ const REFRESH_MS = 45_000;
 export function CartPriceSync({ silent = false }: { silent?: boolean }) {
   const { data: session, status } = useSession();
   const { items, isLoaded, syncPrices } = useCart();
-  const [customCount, setCustomCount] = useState(0);
   const [priceUpdated, setPriceUpdated] = useState(false);
   const lastSyncAt = useRef(0);
 
@@ -66,9 +65,6 @@ export function CartPriceSync({ silent = false }: { silent?: boolean }) {
             setPriceUpdated(true);
             setTimeout(() => setPriceUpdated(false), 4000);
           }
-          setCustomCount(
-            data.items.filter((l: { isCustomPrice: boolean }) => l.isCustomPrice).length
-          );
         })
         .catch(() => {});
     },
@@ -96,7 +92,7 @@ export function CartPriceSync({ silent = false }: { silent?: boolean }) {
     };
   }, [runSync]);
 
-  if (silent && !priceUpdated && customCount === 0) return null;
+  if (silent && !priceUpdated) return null;
 
   if (priceUpdated) {
     return (
@@ -106,11 +102,5 @@ export function CartPriceSync({ silent = false }: { silent?: boolean }) {
     );
   }
 
-  if (customCount === 0) return null;
-
-  return (
-    <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-800 animate-fade-in">
-      Your B2B custom pricing is applied to {customCount} item(s) in your cart.
-    </div>
-  );
+  return null;
 }

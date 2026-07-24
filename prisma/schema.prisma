@@ -123,6 +123,7 @@ model User {
   clientBills         ClientBill[]
   discountRules       ClientDiscountRule[]
   cashbackWallet      CashbackWalletEntry[]
+  supportThreads      SupportThread[]
 }
 
 model ClientProfile {
@@ -455,6 +456,75 @@ model ClientVoucher {
   orders Order[]
 
   @@unique([clientId, code])
+}
+
+// ─── Password reset OTP ──────────────────────────────────────────────────────
+
+model PasswordResetOtp {
+  id        String    @id @default(cuid()) @map("_id")
+  email     String
+  otpHash   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, expiresAt])
+}
+
+// ─── Support messaging ───────────────────────────────────────────────────────
+
+model SupportThread {
+  id            String   @id @default(cuid()) @map("_id")
+  clientId      String
+  client        User     @relation(fields: [clientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subject       String   @default("Support")
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  messages      SupportMessage[]
+
+  @@index([clientId, lastMessageAt])
+}
+
+model SupportMessage {
+  id         String   @id @default(cuid()) @map("_id")
+  threadId   String
+  thread     SupportThread @relation(fields: [threadId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  senderId   String
+  senderRole Role
+  body       String   @default("")
+  attachments String  @default("[]") // JSON array of {url, name, type, size}
+  createdAt  DateTime @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+// ─── Homepage banners ────────────────────────────────────────────────────────
+
+model Banner {
+  id        String   @id @default(cuid()) @map("_id")
+  title     String
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── Admin notifications ─────────────────────────────────────────────────────
+
+model AdminNotification {
+  id        String   @id @default(cuid()) @map("_id")
+  type      String   // ORDER, PAYMENT, SUPPORT, SYSTEM
+  title     String
+  body      String
+  href      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead, createdAt])
 }
 
 // ─── Platform settings ───────────────────────────────────────────────────────

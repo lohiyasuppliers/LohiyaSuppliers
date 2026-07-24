@@ -10,6 +10,10 @@ const SETTING_FIELDS = [
   { key: "business_address", label: "Business Address", type: "text" },
   { key: "contact_email", label: "Contact Email", type: "email" },
   { key: "contact_phone", label: "Contact Phone", type: "text" },
+  { key: "payment_upi_id", label: "UPI ID", type: "text" },
+  { key: "payment_upi_name", label: "UPI Account Name", type: "text" },
+  { key: "payment_qr_url", label: "Payment QR Image URL", type: "text" },
+  { key: "payment_note", label: "Payment Note", type: "text" },
   {
     key: "allow_voucher_cashback_stack",
     label: "Allow Voucher + Cashback Stacking",
@@ -66,6 +70,9 @@ export function SettingsForm({ settings }: { settings: Record<string, string> })
               value={form[field.key] || ""}
               onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
               className="w-full px-3 py-2 border rounded-lg text-sm"
+              placeholder={
+                field.key === "payment_qr_url" ? "/uploads/support/qr.png or https://…" : undefined
+              }
             />
           )}
         </div>

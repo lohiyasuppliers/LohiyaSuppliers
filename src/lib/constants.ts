@@ -68,4 +68,8 @@ export const DEFAULT_PLATFORM_SETTINGS = {
   allow_voucher_cashback_stack: "true",
   contact_email: "lohiyasuppliers@gmail.com",
   contact_phone: "7062099524 (Shivam), 9314526796 (Sunil)",
+  payment_upi_id: "",
+  payment_upi_name: "Lohiya Suppliers",
+  payment_qr_url: "",
+  payment_note: "Pay via UPI and upload screenshot for verification",
 } as const;

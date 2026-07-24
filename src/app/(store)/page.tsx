@@ -1,8 +1,9 @@
 import Link from "next/link";
+import nextDynamic from "next/dynamic";
 import { StaticHero } from "@/components/home/StaticHero";
+import { HeroCarousel } from "@/components/home/HeroCarousel";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { ProductGrid } from "@/components/products/ProductGrid";
-import { PricedProductGrid } from "@/components/products/PricedProductGrid";
 import { CatalogImage } from "@/components/ui/CatalogImage";
 import { getCatalogTree } from "@/lib/catalog";
 import {
@@ -24,9 +25,25 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { ApplicationType } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
-export const revalidate = 300;
-export const dynamic = "force-static";
+const PricedProductGrid = nextDynamic(
+  () =>
+    import("@/components/products/PricedProductGrid").then((m) => ({
+      default: m.PricedProductGrid,
+    })),
+  {
+    loading: () => (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    ),
+  }
+);
+
+export const revalidate = 60;
 
 const features = [
   {
@@ -51,7 +68,7 @@ const features = [
     icon: CreditCard,
     title: "Custom Pricing",
     desc: "Per-client rates, cashback & vouchers",
-    accent: "from-violet-500 to-purple-600",
+    accent: "from-brand-500 to-brand-800",
   },
 ];
 
@@ -83,43 +100,42 @@ const brands = [
 ];
 
 export default async function HomePage() {
-  const [featured, catalogTree, stats] = await Promise.all([
+  const [featured, catalogTree, stats, dbBanners] = await Promise.all([
     getCachedFeaturedProducts(),
     getCatalogTree(),
     getCachedSiteStats(),
+    prisma.banner.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    }),
   ]);
 
   const { productCount, variationCount, subcategoryCount } = stats;
 
-  const heroBanners = [
-    {
-      id: "metal",
-      title: "Metal Application Abrasives",
-      subtitle:
-        "Cutting wheels, grinding discs, flap discs & carbide cutters for fabrication shops.",
-      image: IMG.metalHero,
-      link: "/products?application=metal",
-    },
-    {
-      id: "wood",
-      title: "Wood Application Tools",
-      subtitle:
-        "Sanding belts, velcro discs, saw blades & edge banding for furniture makers.",
-      image: IMG.woodHero,
-      link: "/products?application=wood",
-    },
-    {
-      id: "brands",
-      title: "Deerfros · Leitz · AIPL",
-      subtitle: "Authorized B2B distributor with custom pricing for every registered client.",
-      image: IMG.brandsHero,
-      link: "/products",
-    },
-  ];
+  const fallbackHero = {
+    id: "metal",
+    title: "Metal Application Abrasives",
+    subtitle:
+      "Cutting wheels, grinding discs, flap discs & carbide cutters for fabrication shops.",
+    image: IMG.metalHero,
+    link: "/products?application=metal",
+  };
+
+  const carouselBanners = dbBanners.map((b) => ({
+    id: b.id,
+    title: b.title,
+    subtitle: b.subtitle,
+    image: b.imageUrl,
+    link: b.linkUrl,
+  }));
 
   return (
     <>
-      <StaticHero slide={heroBanners[0]} />
+      {carouselBanners.length > 0 ? (
+        <HeroCarousel banners={carouselBanners} />
+      ) : (
+        <StaticHero slide={fallbackHero} />
+      )}
 
       {/* Stats ribbon */}
       <section className="relative z-10 -mt-8 mx-4 max-w-6xl lg:mx-auto">
@@ -334,9 +350,11 @@ export default async function HomePage() {
               View All <ArrowRight className="w-4 h-4" />
             </Link>
           </ScrollReveal>
-          <PricedProductGrid productIds={featured.map((p) => p.id)}>
-            <ProductGrid products={featured} />
-          </PricedProductGrid>
+          <ScrollReveal delay={80}>
+            <PricedProductGrid productIds={featured.map((p) => p.id)}>
+              <ProductGrid products={featured} />
+            </PricedProductGrid>
+          </ScrollReveal>
         </div>
       </section>
 

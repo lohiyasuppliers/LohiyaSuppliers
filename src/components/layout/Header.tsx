@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useState, Suspense } from "react";
 import {
@@ -70,9 +71,14 @@ export function Header({
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-xl gradient-hero flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-brand-900/20 group-hover:scale-105 transition-transform">
-              LS
-            </div>
+            <Image
+              src="/logo.svg"
+              alt="Lohiya Suppliers"
+              width={44}
+              height={44}
+              className="w-11 h-11 group-hover:scale-105 transition-transform"
+              priority
+            />
             <div>
               <div className="font-bold text-lg text-brand-900 leading-tight">Lohiya Suppliers</div>
               <div className="text-xs text-gray-500 hidden sm:block">Industrial Abrasives & Tools</div>

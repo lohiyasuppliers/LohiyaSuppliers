@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, MapPin, ArrowRight, Phone } from "lucide-react";
 import { ContactPhoneLinks } from "@/components/layout/ContactPhoneLinks";
 
@@ -36,9 +37,13 @@ export function Footer({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-11 h-11 rounded-xl bg-brand-600 flex items-center justify-center text-white font-bold shadow-lg">
-                LS
-              </div>
+              <Image
+                src="/logo.svg"
+                alt={siteName}
+                width={44}
+                height={44}
+                className="w-11 h-11"
+              />
               <div>
                 <div className="font-bold text-white text-lg">{siteName}</div>
                 <div className="text-xs text-brand-400">Industrial Abrasives & Tools</div>
