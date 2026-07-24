@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
-import { revalidateCategories } from "@/lib/revalidate-catalog";
+import { revalidateCategories, revalidateProductCatalog } from "@/lib/revalidate-catalog";
+import { deleteCategoryCascade } from "@/lib/delete-category";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -30,21 +31,29 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const auth = await requireAdminApi();
   if (!auth.authorized) return auth.response;
   const { id } = await params;
-  const count = await prisma.product.count({ where: { categoryId: id } });
-  if (count > 0) {
-    return NextResponse.json(
-      { error: "Category has products. Move or delete them first." },
-      { status: 400 }
-    );
+
+  try {
+    const category = await prisma.category.findUnique({
+      where: { id },
+      select: { id: true, slug: true, name: true },
+    });
+    if (!category) {
+      return NextResponse.json({ error: "Category not found" }, { status: 404 });
+    }
+    if (category.slug === "archived") {
+      return NextResponse.json(
+        { error: "The Archived category cannot be deleted — it holds products from order history." },
+        { status: 400 }
+      );
+    }
+
+    const result = await deleteCategoryCascade(id);
+    revalidateCategories();
+    revalidateProductCatalog();
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("delete category failed", error);
+    const message = error instanceof Error ? error.message : "Failed to delete category";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-  const childCount = await prisma.category.count({ where: { parentId: id } });
-  if (childCount > 0) {
-    return NextResponse.json(
-      { error: "Category has subcategories. Delete them first." },
-      { status: 400 }
-    );
-  }
-  await prisma.category.delete({ where: { id } });
-  revalidateCategories();
-  return NextResponse.json({ success: true });
 }

@@ -20,7 +20,7 @@ export default async function AdminCategoriesPage() {
     orderBy: [{ parentId: "asc" }, { sortOrder: "asc" }],
   });
 
-  const departments = categories.filter((c) => !c.parentId);
+  const departments = categories.filter((c) => !c.parentId && c.slug !== "archived");
   const subcategories = categories.filter((c) => c.parentId);
 
   return (
@@ -71,8 +71,9 @@ export default async function AdminCategoriesPage() {
                     </Link>
                     <CategoryActions
                       categoryId={dept.id}
-                      productCount={dept._count.products}
+                      productCount={dept._count.products + dept.children.reduce((s, c) => s + c._count.products, 0)}
                       childCount={dept._count.children}
+                      label="department"
                     />
                   </div>
                 </div>
@@ -105,6 +106,7 @@ export default async function AdminCategoriesPage() {
                         <CategoryActions
                           categoryId={sub.id}
                           productCount={sub._count.products}
+                          label="subcategory"
                         />
                       </div>
                     </div>
