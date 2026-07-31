@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, Edit, ChevronRight } from "lucide-react";
 import { CategoryActions } from "@/components/admin/CategoryActions";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { APPLICATION_LABELS } from "@/lib/catalog";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
@@ -32,12 +33,19 @@ export default async function AdminCategoriesPage() {
             {departments.length} departments · {subcategories.length} subcategories
           </p>
         </div>
-        <Link
-          href="/admin/categories/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
-        >
-          <Plus className="w-4 h-4" /> Add Category
-        </Link>
+        <div className="flex items-center gap-2">
+          <CsvDownloadButton
+            href="/api/admin/categories/export"
+            label="Download (CSV)"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 bg-white text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-50"
+          />
+          <Link
+            href="/admin/categories/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
+          >
+            <Plus className="w-4 h-4" /> Add Category
+          </Link>
+        </div>
       </div>
 
       <div className="space-y-8">

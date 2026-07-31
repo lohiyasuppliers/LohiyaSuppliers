@@ -96,7 +96,12 @@ export default async function UserManagementPage() {
                 return (
                   <tr key={user.id} className={`hover:bg-gray-50 ${!user.isActive ? "bg-red-50/40" : ""}`}>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900 whitespace-nowrap">{user.name || "—"}</div>
+                      <Link
+                        href={`/admin/users/${user.id}`}
+                        className="font-medium text-gray-900 hover:text-brand-700 hover:underline whitespace-nowrap"
+                      >
+                        {user.name || "—"}
+                      </Link>
                       <div className="text-xs text-gray-500">{user.email}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{user.phone || "—"}</td>

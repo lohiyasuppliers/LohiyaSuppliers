@@ -63,7 +63,7 @@ export function OptimizedImage({
             setFailed(true);
           }
         }}
-        className={cn("object-cover", className)}
+        className={cn("object-contain", className)}
       />
     </div>
   );

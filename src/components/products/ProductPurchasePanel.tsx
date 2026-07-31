@@ -22,6 +22,7 @@ import { Minus, Plus, Tag } from "lucide-react";
 interface Variation {
   id: string;
   sku: string;
+  label?: string | null;
   attributes: Record<string, string>;
   defaultPricePaise: number | null;
 }

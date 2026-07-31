@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { formatPaise } from "@/lib/utils";
 import { CouponActions } from "@/components/admin/CouponActions";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 
 export const metadata = { title: "Coupons & Vouchers" };
 export const revalidate = 0;
@@ -28,12 +29,19 @@ export default async function AdminCouponsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Client Vouchers</h1>
           <p className="text-gray-500 text-sm">{vouchers.length} vouchers</p>
         </div>
-        <Link
-          href="/admin/coupons/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
-        >
-          <Plus className="w-4 h-4" /> Add Voucher
-        </Link>
+        <div className="flex items-center gap-2">
+          <CsvDownloadButton
+            href="/api/admin/coupons/export"
+            label="Download (CSV)"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 bg-white text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-50"
+          />
+          <Link
+            href="/admin/coupons/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
+          >
+            <Plus className="w-4 h-4" /> Add Voucher
+          </Link>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border overflow-hidden">

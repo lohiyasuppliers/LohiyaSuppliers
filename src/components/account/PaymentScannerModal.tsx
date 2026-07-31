@@ -10,10 +10,13 @@ import {
   X,
   ImagePlus,
   Shield,
+  ZoomIn,
 } from "lucide-react";
 import { formatPaise, paiseToRupees, rupeesToPaise } from "@/lib/utils";
+import { normalizeImageUrl } from "@/lib/catalog-images";
 import { CheckoutBillOptions } from "@/components/checkout/CheckoutBillOptions";
 import { useCheckoutQuote, type B2bRewardChoice } from "@/components/checkout/CheckoutRewardsPanel";
+import { ImageLightbox } from "@/components/ui/ImageLightbox";
 
 export interface PayableOrderInfo {
   id: string;
@@ -91,6 +94,11 @@ function PaymentScannerModalInner({
     qrUrl: string;
     note: string;
   } | null>(null);
+  const [qrLightboxOpen, setQrLightboxOpen] = useState(false);
+
+  const qrImageSrc = upiInfo?.qrUrl?.trim()
+    ? normalizeImageUrl(upiInfo.qrUrl)
+    : "";
 
   useEffect(() => {
     if (checkout?.includeGst !== undefined) setIncludeGst(checkout.includeGst);
@@ -463,15 +471,26 @@ function PaymentScannerModalInner({
               {/* QR scan area */}
               <div className="rounded-xl bg-gray-50 border border-gray-100 px-6 py-6 text-center">
                 <div className="relative inline-flex mb-4">
-                  {upiInfo?.qrUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={upiInfo.qrUrl}
-                      alt="UPI payment QR"
-                      className={`h-40 w-40 object-contain rounded-lg bg-white border border-gray-200 ${
+                  {qrImageSrc ? (
+                    <button
+                      type="button"
+                      onClick={() => setQrLightboxOpen(true)}
+                      className={`group relative rounded-xl bg-white border border-gray-200 p-3 cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
                         scanning ? "opacity-20" : ""
                       }`}
-                    />
+                      aria-label="Enlarge payment QR code"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={qrImageSrc}
+                        alt="UPI payment QR"
+                        className="h-52 w-52 max-w-full object-contain"
+                      />
+                      <span className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ZoomIn className="w-3 h-3" />
+                        Enlarge
+                      </span>
+                    </button>
                   ) : (
                     <QrCode
                       className={`h-16 w-16 text-brand-700 ${scanning ? "opacity-20" : ""}`}
@@ -569,6 +588,14 @@ function PaymentScannerModalInner({
           </p>
         </div>
       </div>
+      {qrImageSrc && (
+        <ImageLightbox
+          src={qrImageSrc}
+          alt="UPI payment QR code"
+          open={qrLightboxOpen}
+          onClose={() => setQrLightboxOpen(false)}
+        />
+      )}
     </div>
   );
 }

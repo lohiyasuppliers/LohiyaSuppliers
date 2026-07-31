@@ -10,7 +10,11 @@ export function ProductActions({ productId, slug }: { productId: string; slug: s
   const [deleting, setDeleting] = useState(false);
 
   async function handleDelete() {
-    if (!confirm("Delete this product? Products with past orders will be deactivated instead.")) {
+    if (
+      !confirm(
+        "Delete this product? Items with past orders will be deactivated; others are permanently removed."
+      )
+    ) {
       return;
     }
     setDeleting(true);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
+import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
 import { formatPaise } from "@/lib/utils";
 
 export async function GET() {
@@ -8,7 +9,6 @@ export async function GET() {
   if (!auth.authorized) return auth.response;
 
   const products = await prisma.product.findMany({
-    where: { isActive: true },
     include: {
       category: { select: { name: true, slug: true, parent: { select: { name: true } } } },
       _count: { select: { variations: true } },
@@ -25,6 +25,8 @@ export async function GET() {
     "Parent Category",
     "HSN",
     "Default Price",
+    "Purchase Price",
+    "Purchase Date",
     "GST %",
     "Variations",
     "Active",
@@ -39,19 +41,17 @@ export async function GET() {
     p.category.parent?.name || "",
     p.hsnCode || "",
     formatPaise(p.defaultPricePaise).replace("₹", ""),
+    p.purchasePricePaise != null ? formatPaise(p.purchasePricePaise).replace("₹", "") : "",
+    p.purchasePriceDate
+      ? new Date(p.purchasePriceDate).toLocaleDateString("en-IN")
+      : "",
     ((p.gstRateBps || 0) / 100).toFixed(2),
     String(p._count.variations),
     p.isActive ? "Yes" : "No",
   ]);
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="lohiya-products-${new Date().toISOString().slice(0, 10)}.csv"`,
-    },
-  });
+  return csvDownloadResponse(
+    buildCsv(headers, rows),
+    `lohiya-catalog-${new Date().toISOString().slice(0, 10)}.csv`
+  );
 }

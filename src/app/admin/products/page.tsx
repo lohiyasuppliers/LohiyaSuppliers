@@ -3,6 +3,7 @@ import Link from "next/link";
 import { formatPaise } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { ProductActions } from "@/components/admin/ProductActions";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { CategoryType } from "@prisma/client";
 
 export const metadata = { title: "Catalog" };
@@ -50,12 +51,19 @@ export default async function AdminProductsPage({ searchParams }: Props) {
             {params.search ? ` matching "${params.search}"` : ""}
           </p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
-        >
-          <Plus className="w-4 h-4" /> Add Item
-        </Link>
+        <div className="flex items-center gap-2">
+          <CsvDownloadButton
+            href="/api/admin/products/export"
+            label="Download Catalog (CSV)"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 bg-white text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-50"
+          />
+          <Link
+            href="/admin/products/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-medium hover:bg-brand-700"
+          >
+            <Plus className="w-4 h-4" /> Add Item
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

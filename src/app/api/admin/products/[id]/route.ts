@@ -63,7 +63,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
 
     await prisma.$transaction(async (tx) => {
-      await tx.productVariation.deleteMany({ where: { productId: id } });
       await tx.clientPriceOverride.deleteMany({ where: { productId: id } });
       await tx.cashbackRule.deleteMany({ where: { productId: id } });
       await tx.productDiscountRule.deleteMany({ where: { productId: id } });
@@ -75,6 +74,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
           data: { isActive: false },
         });
       } else {
+        await tx.productVariation.deleteMany({ where: { productId: id } });
         await tx.product.delete({ where: { id } });
       }
     });

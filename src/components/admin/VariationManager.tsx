@@ -8,8 +8,11 @@ import { sanitizeAttributes } from "@/lib/attributes";
 export interface VariationDraft {
   id?: string;
   sku: string;
+  label?: string;
   attributes: Record<string, string>;
   priceRupees: string;
+  purchasePriceRupees?: string;
+  purchasePriceDate?: string;
   imageUrl: string;
   isActive: boolean;
 }
@@ -24,11 +27,21 @@ interface VariationManagerProps {
 
 const emptyVariation = (): VariationDraft => ({
   sku: "",
+  label: "",
   attributes: { size: "" },
   priceRupees: "",
+  purchasePriceRupees: "",
+  purchasePriceDate: "",
   imageUrl: "",
   isActive: true,
 });
+
+function toDateInputValue(value?: Date | string | null) {
+  if (!value) return "";
+  const d = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
 
 function withGeneratedSku(
   v: VariationDraft,
@@ -128,16 +141,23 @@ export function VariationManager({
           (v: {
             id: string;
             sku: string;
+            label: string | null;
             attributes: Record<string, string>;
             defaultPricePaise: number | null;
+            purchasePricePaise: number | null;
+            purchasePriceDate: Date | string | null;
             imageUrl: string | null;
             isActive: boolean;
           }) => ({
             id: v.id,
             sku: v.sku,
+            label: v.label || "",
             attributes: v.attributes,
             priceRupees:
               v.defaultPricePaise != null ? (v.defaultPricePaise / 100).toString() : "",
+            purchasePriceRupees:
+              v.purchasePricePaise != null ? (v.purchasePricePaise / 100).toString() : "",
+            purchasePriceDate: toDateInputValue(v.purchasePriceDate),
             imageUrl: v.imageUrl || "",
             isActive: v.isActive,
           })
@@ -157,7 +177,7 @@ export function VariationManager({
             Product Variations
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            Edit attribute names (size, grit, etc.) and values — SKU updates automatically.
+            Set variant names, attributes, prices, and admin-only purchase cost per variation.
           </p>
         </div>
         <button
@@ -194,6 +214,18 @@ export function VariationManager({
                 </button>
               </div>
 
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">
+                  Variant name (display label)
+                </label>
+                <input
+                  value={v.label || ""}
+                  onChange={(e) => updateVariation(i, { label: e.target.value })}
+                  placeholder="e.g. 4 inch · 80 grit (optional — overrides attribute labels)"
+                  className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">Price (₹)</label>
@@ -214,6 +246,44 @@ export function VariationManager({
                     onChange={(e) => updateVariation(i, { imageUrl: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
                   />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-amber-900">Purchase cost (admin only)</p>
+                  <p className="text-[11px] text-amber-800/80">
+                    Not shown to clients on the storefront or invoices.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">
+                      Purchase Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={v.purchasePriceRupees || ""}
+                      onChange={(e) =>
+                        updateVariation(i, { purchasePriceRupees: e.target.value })
+                      }
+                      placeholder="Optional"
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 block mb-1">
+                      Purchase Price Date
+                    </label>
+                    <input
+                      type="date"
+                      value={v.purchasePriceDate || ""}
+                      onChange={(e) => updateVariation(i, { purchasePriceDate: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm bg-white"
+                    />
+                  </div>
                 </div>
               </div>
 

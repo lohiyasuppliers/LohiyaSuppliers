@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { resolvePricesForLineItems, unitPriceFromMap } from "@/lib/pricing";
 import { apiError, apiOk, parseJsonBody } from "@/lib/api";
+import { variationLabel } from "@/lib/variations";
 import { Role } from "@prisma/client";
 
 interface CartLine {
@@ -78,7 +79,13 @@ export async function POST(req: Request) {
       name: product.name,
       slug: product.slug,
       sku: variation?.sku ?? product.slug.toUpperCase().replace(/-/g, ""),
-      variationLabel: attrs ? Object.values(attrs).join(" · ") : undefined,
+      variationLabel: variation
+        ? variationLabel({
+            label: variation.label,
+            attributes: attrs || {},
+            sku: variation.sku,
+          })
+        : undefined,
       pricePaise: unitPricePaise,
       listPricePaise: fallback,
       isCustomPrice: clientId != null && unitPricePaise !== fallback,

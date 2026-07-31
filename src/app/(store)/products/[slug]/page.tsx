@@ -2,13 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { productImagesFromJson } from "@/lib/catalog-images";
-import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 import { ProductPurchasePanel } from "@/components/products/ProductPurchasePanel";
 import { ProductFromPrice } from "@/components/products/ProductFromPrice";
 import { ProductPricingProvider } from "@/context/ProductPricingContext";
 import { getProductListFromPricePaise } from "@/lib/product-price";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
-import { ArrowLeft, Package, Shield, Layers } from "lucide-react";
+import { ArrowLeft, Package, Shield } from "lucide-react";
 import { ProductGrid } from "@/components/products/ProductGrid";
 import { PricedProductGrid } from "@/components/products/PricedProductGrid";
 import { variationCountLabel } from "@/lib/variations";
@@ -64,26 +64,12 @@ export default async function ProductDetailPage({ params }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14">
         <ScrollReveal direction="left">
-          <div className="aspect-square bg-gradient-to-br from-gray-50 to-brand-50/40 rounded-2xl border border-gray-100 relative overflow-hidden shadow-xl shadow-brand-900/5">
-            <OptimizedImage
-              src={images[0]}
-              alt={product.name}
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="hover:scale-[1.02] transition-transform duration-700"
-            />
-            {product.brand && (
-              <span className="absolute top-4 left-4 z-10 px-4 py-1.5 bg-white/95 backdrop-blur text-sm font-bold text-brand-800 rounded-xl shadow-md">
-                {product.brand}
-              </span>
-            )}
-            {variationCount > 0 && (
-              <span className="absolute top-4 right-4 z-10 px-3 py-1.5 bg-brand-600 text-white text-sm font-semibold rounded-xl shadow-md flex items-center gap-1.5">
-                <Layers className="w-4 h-4" />
-                {variantLabel}
-              </span>
-            )}
-          </div>
+          <ProductImageGallery
+            images={images}
+            productName={product.name}
+            brand={product.brand}
+            variantBadge={variationCount > 0 ? variantLabel : undefined}
+          />
         </ScrollReveal>
 
         <ScrollReveal direction="right" delay={100}>

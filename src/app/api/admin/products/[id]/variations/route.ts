@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     orderBy: { sku: "asc" },
   });
   return NextResponse.json(variations);
- }
+}
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -51,12 +51,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const sku =
       v.sku?.trim() ||
       generateVariationSku(product.brand, product.slug, attrs, i);
+    const purchasePricePaise =
+      v.purchasePriceRupees === "" || v.purchasePriceRupees == null
+        ? null
+        : rupeesToPaise(Number(v.purchasePriceRupees));
+    const purchaseDateRaw = v.purchasePriceDate ? new Date(v.purchasePriceDate) : null;
+    const purchasePriceDate =
+      purchaseDateRaw && !Number.isNaN(purchaseDateRaw.getTime()) ? purchaseDateRaw : null;
+
     const data = {
       sku,
+      label: v.label?.trim() || null,
       attributes: attrs,
-      defaultPricePaise: v.priceRupees != null && v.priceRupees !== ""
-        ? rupeesToPaise(Number(v.priceRupees))
-        : null,
+      defaultPricePaise:
+        v.priceRupees != null && v.priceRupees !== ""
+          ? rupeesToPaise(Number(v.priceRupees))
+          : null,
+      purchasePricePaise,
+      purchasePriceDate,
       imageUrl: v.imageUrl || null,
       isActive: v.isActive ?? true,
     };

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PaymentQrSettingField } from "@/components/admin/PaymentQrSettingField";
 
 const SETTING_FIELDS = [
   { key: "business_name", label: "Business Name", type: "text" },
@@ -12,7 +13,6 @@ const SETTING_FIELDS = [
   { key: "contact_phone", label: "Contact Phone", type: "text" },
   { key: "payment_upi_id", label: "UPI ID", type: "text" },
   { key: "payment_upi_name", label: "UPI Account Name", type: "text" },
-  { key: "payment_qr_url", label: "Payment QR Image URL", type: "text" },
   { key: "payment_note", label: "Payment Note", type: "text" },
   {
     key: "allow_voucher_cashback_stack",
@@ -49,34 +49,55 @@ export function SettingsForm({ settings }: { settings: Record<string, string> })
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl border p-6 max-w-2xl space-y-4">
-      {SETTING_FIELDS.map((field) => (
-        <div key={field.key}>
-          <label className="text-sm font-medium text-gray-700 block mb-1">{field.label}</label>
-          {field.type === "select" ? (
-            <select
-              value={form[field.key] || "true"}
-              onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-            >
-              {field.options?.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type={field.type}
-              value={form[field.key] || ""}
-              onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg text-sm"
-              placeholder={
-                field.key === "payment_qr_url" ? "/uploads/support/qr.png or https://…" : undefined
-              }
-            />
-          )}
-        </div>
-      ))}
+      {SETTING_FIELDS.map((field) => {
+        if (field.key === "payment_note") {
+          return (
+            <div key="payment_qr_url">
+              <PaymentQrSettingField
+                value={form.payment_qr_url || ""}
+                onChange={(url) => setForm({ ...form, payment_qr_url: url })}
+              />
+              <div className="mt-4">
+                <label className="text-sm font-medium text-gray-700 block mb-1">
+                  {field.label}
+                </label>
+                <input
+                  type="text"
+                  value={form.payment_note || ""}
+                  onChange={(e) => setForm({ ...form, payment_note: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div key={field.key}>
+            <label className="text-sm font-medium text-gray-700 block mb-1">{field.label}</label>
+            {field.type === "select" ? (
+              <select
+                value={form[field.key] || "true"}
+                onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              >
+                {field.options?.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type={field.type}
+                value={form[field.key] || ""}
+                onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+              />
+            )}
+          </div>
+        );
+      })}
       <button
         type="submit"
         disabled={loading}

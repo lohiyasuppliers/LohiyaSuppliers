@@ -24,8 +24,15 @@ export default async function EditProductPage({ params }: Props) {
   const initialVariations = product.variations.map((v) => ({
     id: v.id,
     sku: v.sku,
+    label: v.label || "",
     attributes: v.attributes as Record<string, string>,
     priceRupees: v.defaultPricePaise != null ? (v.defaultPricePaise / 100).toString() : "",
+    purchasePriceRupees:
+      v.purchasePricePaise != null ? (v.purchasePricePaise / 100).toString() : "",
+    purchasePriceDate:
+      v.purchasePriceDate
+        ? new Date(v.purchasePriceDate).toISOString().slice(0, 10)
+        : "",
     imageUrl: v.imageUrl || "",
     isActive: v.isActive,
   }));

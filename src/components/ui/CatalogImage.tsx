@@ -33,7 +33,7 @@ export function CatalogImage({
         sizes={sizes}
         priority={priority}
         unoptimized={unoptimized}
-        className={cn("object-cover", className)}
+        className={cn("object-contain", className)}
       />
     </div>
   );

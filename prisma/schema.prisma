@@ -205,9 +205,14 @@ model ProductVariation {
   productId           String
   product             Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sku                 String   @unique
+  /// Admin-editable display name (overrides attribute-based label when set)
+  label               String?
   attributes          Json     // e.g. { "size": "4 inch" }
   imageUrl            String?
   defaultPricePaise   Int?     // overrides product default when set
+  /// Admin-only cost tracking — never exposed to storefront clients
+  purchasePricePaise  Int?
+  purchasePriceDate   DateTime?
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -215,6 +220,20 @@ model ProductVariation {
   orderItems     OrderItem[]
 
   @@index([productId, isActive])
+}
+
+// ─── Homepage / website CMS sections ─────────────────────────────────────────
+
+model PageSection {
+  id        String   @id @default(cuid()) @map("_id")
+  key       String   @unique // faq, testimonials, why_choose
+  title     String
+  subtitle  String?
+  content   String   @default("[]") // JSON array of items
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // variationId on ClientPriceOverride

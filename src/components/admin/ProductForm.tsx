@@ -35,7 +35,7 @@ interface ProductFormProps {
   initialVariations?: VariationDraft[];
 }
 
-const BRAND_OPTIONS = ["Deerfros", "Leitz", "AIPL", "Other"];
+const DEFAULT_BRAND_OPTIONS = ["Deerfros", "Leitz", "AIPL", "Other"];
 
 function toDateInputValue(value?: Date | string | null) {
   if (!value) return "";
@@ -51,6 +51,11 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
     parseJSON<string[]>(initialData?.images || "[]", [])
   );
   const [variations, setVariations] = useState<VariationDraft[]>(initialVariations);
+  const [customBrand, setCustomBrand] = useState(
+    initialData?.brand && !DEFAULT_BRAND_OPTIONS.includes(initialData.brand)
+      ? initialData.brand
+      : ""
+  );
   const [form, setForm] = useState({
     name: initialData?.name || "",
     slug: initialData?.slug || "",
@@ -68,6 +73,12 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
   });
 
   const leafCategories = categories.filter((c) => c.parentId);
+  const brandSelectValue =
+    form.brand === "Other" || (form.brand && !DEFAULT_BRAND_OPTIONS.includes(form.brand))
+      ? "Other"
+      : form.brand;
+  const resolvedBrand =
+    brandSelectValue === "Other" ? customBrand.trim() || form.brand : form.brand;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,7 +91,7 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
       body: JSON.stringify({
         name: form.name,
         slug: form.slug,
-        brand: form.brand || null,
+        brand: resolvedBrand || null,
         description: form.description,
         hsnCode: form.hsnCode,
         gstRateBps: DEFAULT_GST_RATE_PERCENT * 100,
@@ -98,7 +109,7 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
       if (variations.length > 0) {
         const withSkus = variations.map((v, i) => ({
           ...v,
-          sku: v.sku || generateVariationSku(form.brand, form.slug, v.attributes, i),
+          sku: v.sku || generateVariationSku(resolvedBrand, form.slug, v.attributes, i),
         }));
         await fetch(`/api/admin/products/${product.id}/variations`, {
           method: "PUT",
@@ -140,14 +151,33 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
           <div>
             <label className="text-sm font-medium block mb-1">Brand</label>
             <select
-              value={form.brand}
-              onChange={(e) => setForm({ ...form, brand: e.target.value })}
+              value={brandSelectValue}
+              onChange={(e) => {
+                const next = e.target.value;
+                setForm({ ...form, brand: next });
+                if (next !== "Other") setCustomBrand("");
+              }}
               className="w-full px-3 py-2 border rounded-lg text-sm"
             >
-              {BRAND_OPTIONS.map((b) => (
+              {DEFAULT_BRAND_OPTIONS.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
             </select>
+            {(brandSelectValue === "Other" ||
+              (form.brand && !DEFAULT_BRAND_OPTIONS.includes(form.brand))) && (
+              <input
+                value={customBrand || (brandSelectValue !== "Other" ? form.brand : "")}
+                onChange={(e) => {
+                  setCustomBrand(e.target.value);
+                  setForm({ ...form, brand: e.target.value || "Other" });
+                }}
+                placeholder="Enter new brand name"
+                className="w-full mt-2 px-3 py-2 border rounded-lg text-sm"
+              />
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Pick a brand or choose Other to add a new one.
+            </p>
           </div>
           <div className="sm:col-span-2">
             <label className="text-sm font-medium block mb-1">Subcategory *</label>
@@ -251,7 +281,7 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
       <VariationManager
         productId={initialData?.id}
         productSlug={form.slug}
-        brand={form.brand}
+        brand={resolvedBrand}
         variations={variations}
         onChange={setVariations}
       />

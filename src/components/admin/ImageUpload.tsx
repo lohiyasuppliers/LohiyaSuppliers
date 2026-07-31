@@ -62,7 +62,7 @@ export function ImageUpload({ images, onChange }: ImageUploadProps) {
             <img
               src={url}
               alt={`Product ${i + 1}`}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = "/images/product-default.svg";
               }}

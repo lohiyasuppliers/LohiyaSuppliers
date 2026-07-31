@@ -140,7 +140,12 @@ export function initialSelectedAttributes(
   return Object.fromEntries(keys.map((k) => [k, attrs[k] ?? ""]));
 }
 
-export function variationLabel(v: { attributes: Record<string, string>; sku?: string }) {
+export function variationLabel(v: {
+  label?: string | null;
+  attributes: Record<string, string>;
+  sku?: string;
+}) {
+  if (v.label?.trim()) return v.label.trim();
   const attrs = Object.values(normalizeAttributes(v.attributes));
   return attrs.length > 0 ? attrs.join(" · ") : v.sku || "Standard";
 }

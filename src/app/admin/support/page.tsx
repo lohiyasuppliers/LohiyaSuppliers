@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SupportChat } from "@/components/support/SupportChat";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { MessageCircle } from "lucide-react";
 
 type Thread = {
@@ -54,12 +55,19 @@ function AdminSupportInner() {
 
   return (
     <div className="space-y-6 admin-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <MessageCircle className="h-6 w-6 text-brand-600" />
-          Support
-        </h1>
-        <p className="text-sm text-gray-500">Client conversations</p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <MessageCircle className="h-6 w-6 text-brand-600" />
+            Support
+          </h1>
+          <p className="text-sm text-gray-500">Client conversations</p>
+        </div>
+        <CsvDownloadButton
+          href="/api/admin/support/export"
+          label="Download Threads (CSV)"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 bg-white text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-50"
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">

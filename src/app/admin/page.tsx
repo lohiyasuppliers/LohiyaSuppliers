@@ -11,6 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { DynamicRevenueChart } from "@/components/admin/DynamicRevenueChart";
 import { RecentOrders } from "@/components/admin/RecentOrders";
 import { CatalogOverview } from "@/components/admin/CatalogOverview";
@@ -223,6 +224,11 @@ export default async function AdminDashboard() {
               day: "numeric",
             })}
           </div>
+          <CsvDownloadButton
+            href="/api/admin/dashboard/export"
+            label="Download Summary"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/95 text-brand-900 rounded-xl text-sm font-semibold hover:bg-white shadow-lg"
+          />
         </div>
       </div>
 
