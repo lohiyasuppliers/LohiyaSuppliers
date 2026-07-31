@@ -15,7 +15,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { Wrench, TreePine } from "lucide-react";
 
-export const metadata = { title: "All Products" };
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "All Products",
+  description:
+    "Browse our full catalog of industrial abrasives — cutting wheels, grinding discs, flap discs, sanding belts & tools. B2B pricing from Lohiya Suppliers, Jaipur.",
+  path: "/products",
+});
 export const revalidate = 60;
 
 interface Props {

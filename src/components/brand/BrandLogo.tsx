@@ -25,21 +25,21 @@ export function BrandLogo({
       <Image
         src={LOGO_SRC}
         alt="Lohiya Suppliers"
-        width={40}
-        height={40}
+        width={56}
+        height={56}
         priority={priority}
         unoptimized
-        className={cn("h-10 w-10 object-cover object-left rounded-lg shrink-0", imageClassName)}
+        className={cn("h-14 w-14 object-cover object-left rounded-lg shrink-0", imageClassName)}
       />
     ) : (
       <Image
         src={LOGO_SRC}
         alt="Lohiya Suppliers"
-        width={240}
-        height={64}
+        width={320}
+        height={80}
         priority={priority}
         unoptimized
-        className={cn("h-10 sm:h-12 w-auto object-contain", imageClassName)}
+        className={cn("h-14 sm:h-16 w-auto object-contain", imageClassName)}
       />
     );
 

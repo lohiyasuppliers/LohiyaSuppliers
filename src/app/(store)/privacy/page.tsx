@@ -1,4 +1,10 @@
-export const metadata = { title: "Privacy Policy" };
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "Privacy Policy",
+  description: "Privacy policy for Lohiya Suppliers — how we collect and protect your B2B account data.",
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

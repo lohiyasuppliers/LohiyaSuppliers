@@ -19,5 +19,7 @@ services:
         sync: false
       - key: NEXTAUTH_URL
         value: https://lohiyas.com
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://lohiyas.com
       - key: BUSINESS_STATE
         value: Maharashtra

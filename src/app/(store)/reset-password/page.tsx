@@ -120,7 +120,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 motion-page-store">
       <div className="w-full max-w-md animate-pop-in">
         <div className="text-center mb-8">
-          <BrandLogo href="/" variant="full" className="justify-center mb-4" imageClassName="h-12" />
+          <BrandLogo href="/" variant="full" className="justify-center mb-4" imageClassName="h-16 sm:h-20" />
           <h1 className="text-2xl font-bold text-gray-900">Reset password</h1>
           <p className="text-gray-500 mt-1">Enter the code from your email</p>
         </div>

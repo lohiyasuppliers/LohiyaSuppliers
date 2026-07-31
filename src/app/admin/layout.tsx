@@ -2,6 +2,12 @@ import { requireAdmin } from "@/lib/session";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { PageTransition } from "@/components/motion/PageTransition";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "Admin",
+  noIndex: true,
+});
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();

@@ -57,7 +57,7 @@ export function AdminSidebar() {
           variant={collapsed ? "icon" : "full"}
           href="/admin"
           className={collapsed ? "mx-auto" : "w-full justify-center"}
-          imageClassName={collapsed ? undefined : "h-9 max-w-full"}
+          imageClassName={collapsed ? undefined : "h-12 sm:h-14 max-w-full"}
         />
       </div>
 

@@ -26,6 +26,14 @@ import {
 } from "lucide-react";
 import { ApplicationType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "Industrial Abrasives & Tools — Jaipur B2B",
+  description:
+    "Lohiya Suppliers — Jaipur B2B supplier of cutting wheels, grinding discs, flap discs & industrial abrasives for metal & wood industries since 2011.",
+  path: "/",
+});
 
 const PricedProductGrid = nextDynamic(
   () =>

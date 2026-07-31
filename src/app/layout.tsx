@@ -2,26 +2,48 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import {
+  SITE_URL,
+  SITE_NAME,
+  DEFAULT_DESCRIPTION,
+  DEFAULT_KEYWORDS,
+  absoluteUrl,
+} from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Lohiya Suppliers | Premium Industrial Abrasives & Tools",
-    template: "%s | Lohiya Suppliers",
+    default: `${SITE_NAME} | Industrial Abrasives & Tools — Jaipur B2B`,
+    template: `%s | ${SITE_NAME}`,
   },
-  description:
-    "Supplying top-grade abrasives to meet the demands of the wooden and metal industries. Cutting wheels, grinding wheels, flap discs, and expert repair services.",
-  keywords: [
-    "abrasives",
-    "cutting wheels",
-    "grinding wheels",
-    "flap discs",
-    "woodworking tools",
-    "metal industry",
-    "B2B supplies",
-    "Lohiya Suppliers",
-  ],
+  description: DEFAULT_DESCRIPTION,
+  keywords: DEFAULT_KEYWORDS,
+  authors: [{ name: SITE_NAME, url: SITE_URL }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  alternates: { canonical: SITE_URL },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} | Industrial Abrasives & Tools — Jaipur B2B`,
+    description: DEFAULT_DESCRIPTION,
+    images: [{ url: absoluteUrl("/logo.png"), width: 1200, height: 630, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} | Industrial Abrasives & Tools`,
+    description: DEFAULT_DESCRIPTION,
+    images: [absoluteUrl("/logo.png")],
+  },
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",

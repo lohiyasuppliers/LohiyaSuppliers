@@ -13,7 +13,14 @@ import { AboutTrendingExplorer } from "@/components/about/AboutTrendingExplorer"
 import { AboutCapabilitiesGrid } from "@/components/about/AboutCapabilitiesGrid";
 import { AboutMilestoneTimeline } from "@/components/about/AboutMilestoneTimeline";
 
-export const metadata = { title: "About Us" };
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "About Us",
+  description:
+    "About Lohiya Suppliers — established 2011 in Jaipur, Rajasthan. Proprietorship business supplying industrial abrasives & tools to metal & wood industries across India.",
+  path: "/about",
+});
 export const revalidate = 60;
 
 const TEAM = [

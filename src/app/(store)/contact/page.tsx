@@ -1,8 +1,14 @@
 import { Suspense } from "react";
 import { getSettings } from "@/lib/settings";
 import { ContactForm } from "@/components/contact/ContactForm";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata = { title: "Contact Us" };
+export const metadata = buildPageMetadata({
+  title: "Contact Us",
+  description:
+    "Contact Lohiya Suppliers in Jaipur for bulk abrasive orders, quotes & repair services. Plot 145 Ram Nagar, Shastri Nagar, Jaipur 302016.",
+  path: "/contact",
+});
 
 export default async function ContactPage() {
   const settings = await getSettings();

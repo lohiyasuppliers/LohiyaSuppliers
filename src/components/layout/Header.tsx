@@ -69,7 +69,7 @@ export function Header({
       </div>
 
       <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <BrandLogo href="/" variant="full" priority className="group hover:opacity-90 transition-opacity" imageClassName="group-hover:scale-[1.02] transition-transform" />
 
           <div className="hidden lg:flex items-center flex-1 max-w-md mx-8">

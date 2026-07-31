@@ -18,7 +18,7 @@ export function OrderBillView({ data }: { data: OrderBillData }) {
               width={200}
               height={52}
               unoptimized
-              className="h-12 w-auto object-contain brightness-0 invert"
+              className="h-16 w-auto object-contain brightness-0 invert"
             />
             <div>
             <p className="text-brand-200 text-xs font-semibold uppercase tracking-widest mb-1">

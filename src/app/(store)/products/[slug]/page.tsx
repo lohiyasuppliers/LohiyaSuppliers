@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { productImagesFromJson } from "@/lib/catalog-images";
+import { productImagesFromJson, firstProductImage } from "@/lib/catalog-images";
+import { buildPageMetadata, breadcrumbJsonLd, productJsonLd, truncateDescription } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { ProductImageGallery } from "@/components/products/ProductImageGallery";
 import { ProductPurchasePanel } from "@/components/products/ProductPurchasePanel";
 import { ProductFromPrice } from "@/components/products/ProductFromPrice";
@@ -30,8 +32,36 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const product = await prisma.product.findUnique({ where: { slug }, select: { name: true } });
-  return { title: product?.name || "Product" };
+  const product = await prisma.product.findUnique({
+    where: { slug, isActive: true },
+    select: {
+      name: true,
+      description: true,
+      brand: true,
+      images: true,
+      category: { select: { name: true } },
+    },
+  });
+  if (!product) return { title: "Product" };
+
+  const title = product.brand ? `${product.name} — ${product.brand}` : product.name;
+  const description = truncateDescription(
+    `${product.name}. ${product.category.name}. ${product.description}`
+  );
+
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/products/${slug}`,
+    image: firstProductImage(product.images),
+    keywords: [
+      product.name,
+      product.brand ?? "",
+      product.category.name,
+      "abrasives Jaipur",
+      "Lohiya Suppliers",
+    ].filter(Boolean),
+  });
 }
 
 export default async function ProductDetailPage({ params }: Props) {
@@ -53,6 +83,24 @@ export default async function ProductDetailPage({ params }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <JsonLd
+        data={[
+          productJsonLd({
+            name: product.name,
+            description: product.description,
+            slug: product.slug,
+            brand: product.brand,
+            images,
+            pricePaise: listFromPricePaise,
+          }),
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Products", path: "/products" },
+            { name: product.category.name, path: `/categories/${product.category.slug}` },
+            { name: product.name, path: `/products/${product.slug}` },
+          ]),
+        ]}
+      />
       <ScrollReveal>
         <Link
           href="/products"

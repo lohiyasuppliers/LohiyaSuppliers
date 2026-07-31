@@ -5,6 +5,12 @@ import {
   PendingPaymentPopup,
   type PaymentSummary,
 } from "@/components/account/PendingPaymentAlert";
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "My Account",
+  noIndex: true,
+});
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAuth();

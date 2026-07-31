@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { GlobalPriceSync } from "@/components/cart/GlobalPriceSync";
 import { PageTransition } from "@/components/motion/PageTransition";
+import { SiteJsonLd } from "@/components/seo/SiteJsonLd";
 import { getCachedSettings, getCachedNavCategories } from "@/lib/cache";
 import { DEFAULT_PLATFORM_SETTINGS } from "@/lib/constants";
 
@@ -61,6 +62,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
 
   return (
     <>
+      <SiteJsonLd />
       <GlobalPriceSync />
       <Header contactEmail={settings.contactEmail} catalogTree={catalogTree} />
       <main className="min-h-screen">

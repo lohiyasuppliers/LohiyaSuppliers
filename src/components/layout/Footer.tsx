@@ -37,7 +37,7 @@ export function Footer({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
             <div className="mb-5">
-              <BrandLogo href="/" variant="full" imageClassName="h-11" />
+              <BrandLogo href="/" variant="full" imageClassName="h-14 sm:h-16" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               {siteTagline || "Supplying top-grade abrasives to meet the demands of the wooden and metal industries."}

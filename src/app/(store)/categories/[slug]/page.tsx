@@ -6,6 +6,8 @@ import { CatalogImage } from "@/components/ui/CatalogImage";
 import { APPLICATION_LABELS } from "@/lib/catalog";
 import { getCachedProductList } from "@/lib/cache";
 import { categoryImageForSlug, normalizeImageUrl } from "@/lib/catalog-images";
+import { buildPageMetadata, breadcrumbJsonLd, truncateDescription } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { ProductGrid } from "@/components/products/ProductGrid";
 import { PricedProductGrid } from "@/components/products/PricedProductGrid";
 import { CategoryType, ApplicationType } from "@prisma/client";
@@ -19,8 +21,23 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
-  const category = await prisma.category.findUnique({ where: { slug }, select: { name: true } });
-  return { title: category?.name || "Category" };
+  const category = await prisma.category.findUnique({
+    where: { slug, isActive: true },
+    select: { name: true, description: true, imageUrl: true },
+  });
+  if (!category) return { title: "Category" };
+
+  const description = category.description
+    ? truncateDescription(category.description)
+    : `Buy ${category.name} abrasives & industrial tools from Lohiya Suppliers, Jaipur. B2B pricing for metal & wood industries.`;
+
+  return buildPageMetadata({
+    title: category.name,
+    description,
+    path: `/categories/${slug}`,
+    image: category.imageUrl ?? categoryImageForSlug(slug),
+    keywords: [category.name, "abrasives", "industrial tools", "Jaipur", "Lohiya Suppliers"],
+  });
 }
 
 export default async function CategoryPage({ params }: Props) {
@@ -49,6 +66,16 @@ export default async function CategoryPage({ params }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Products", path: "/products" },
+          ...(category.parent
+            ? [{ name: category.parent.name, path: `/categories/${category.parent.slug}` }]
+            : []),
+          { name: category.name, path: `/categories/${category.slug}` },
+        ])}
+      />
       <Link
         href={
           category.parent

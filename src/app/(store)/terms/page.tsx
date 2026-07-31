@@ -1,4 +1,10 @@
-export const metadata = { title: "Terms of Service" };
+import { buildPageMetadata } from "@/lib/seo";
+
+export const metadata = buildPageMetadata({
+  title: "Terms of Service",
+  description: "Terms of service for Lohiya Suppliers B2B industrial abrasives platform.",
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return (
