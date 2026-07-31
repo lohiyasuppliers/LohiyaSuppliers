@@ -5,7 +5,7 @@ import { signOut, useSession } from "next-auth/react";
 import { LogOut, ExternalLink, Bell, CheckCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Suspense } from "react";
 
 const pageTitles: Record<string, string> = {
   "/admin": "Dashboard",
@@ -98,7 +98,9 @@ export function AdminHeader() {
           </p>
         </div>
         <div className="flex-1 max-w-md">
-          <AdminSearch />
+          <Suspense fallback={<div className="h-9 rounded-lg bg-slate-100 animate-pulse" />}>
+            <AdminSearch />
+          </Suspense>
         </div>
       </div>
       <div className="ml-4 flex items-center gap-2 md:gap-4">

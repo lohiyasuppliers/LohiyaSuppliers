@@ -3,12 +3,16 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { apiError, parseJsonBody } from "@/lib/api";
 import { sendPasswordResetOtp } from "@/lib/email";
+import { enforceAuthRateLimit } from "@/lib/api-security";
 
 function generateOtp() {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 export async function POST(req: Request) {
+  const limited = enforceAuthRateLimit(req, "forgot");
+  if (limited) return limited;
+
   const body = await parseJsonBody<{ email?: string }>(req);
   const email = String(body?.email || "")
     .toLowerCase()
@@ -30,6 +34,12 @@ export async function POST(req: Request) {
   const otp = generateOtp();
   const otpHash = await bcrypt.hash(otp, 10);
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  // Invalidate any previous unused codes for this email
+  await prisma.passwordResetOtp.updateMany({
+    where: { email, usedAt: { isSet: false } },
+    data: { usedAt: new Date() },
+  });
 
   await prisma.passwordResetOtp.create({
     data: { email, otpHash, expiresAt },

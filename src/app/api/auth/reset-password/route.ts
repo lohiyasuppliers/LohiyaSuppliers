@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { apiError, parseJsonBody } from "@/lib/api";
+import { enforceAuthRateLimit } from "@/lib/api-security";
 
 export async function POST(req: Request) {
+  const limited = enforceAuthRateLimit(req, "reset");
+  if (limited) return limited;
+
   const body = await parseJsonBody<{
     email?: string;
     otp?: string;
@@ -31,11 +35,11 @@ export async function POST(req: Request) {
   const candidates = await prisma.passwordResetOtp.findMany({
     where: {
       email,
-      usedAt: null,
+      usedAt: { isSet: false },
       expiresAt: { gt: new Date() },
     },
     orderBy: { createdAt: "desc" },
-    take: 5,
+    take: 10,
   });
 
   let matched: (typeof candidates)[number] | null = null;

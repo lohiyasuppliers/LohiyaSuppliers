@@ -1,37 +1,75 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { formatPaise } from "@/lib/utils";
 import { Plus } from "lucide-react";
-import { ProductActions } from "@/components/admin/ProductActions";
 import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
-import { CategoryType } from "@prisma/client";
+import { AdminProductFilters } from "@/components/admin/AdminProductFilters";
+import { CatalogProductTable } from "@/components/admin/CatalogProductTable";
+import { Suspense } from "react";
 
 export const metadata = { title: "Catalog" };
 export const revalidate = 30;
 
 interface Props {
-  searchParams: Promise<{ search?: string; category?: string }>;
+  searchParams: Promise<{
+    search?: string;
+    category?: string;
+    brand?: string;
+    status?: string;
+    variants?: string;
+  }>;
 }
 
 export default async function AdminProductsPage({ searchParams }: Props) {
   const params = await searchParams;
   const where: Record<string, unknown> = {};
+  const and: Record<string, unknown>[] = [];
 
-  if (params.category) where.category = { slug: params.category };
-  if (params.search) {
-    where.OR = [
-      { name: { contains: params.search } },
-      { description: { contains: params.search } },
-      { brand: { contains: params.search } },
-    ];
+  if (params.category) {
+    and.push({ category: { slug: params.category } });
   }
 
-  const [products, categories] = await Promise.all([
+  if (params.brand) {
+    and.push({ brand: params.brand });
+  }
+
+  if (params.status === "active") {
+    and.push({ isActive: true });
+  } else if (params.status === "inactive") {
+    and.push({ isActive: false });
+  }
+
+  if (params.variants === "with") {
+    and.push({ variations: { some: {} } });
+  } else if (params.variants === "without") {
+    and.push({ variations: { none: {} } });
+  }
+
+  if (params.search?.trim()) {
+    const q = params.search.trim();
+    and.push({
+      OR: [
+        { name: { contains: q } },
+        { description: { contains: q } },
+        { brand: { contains: q } },
+        { slug: { contains: q } },
+        { variations: { some: { sku: { contains: q } } } },
+        { variations: { some: { label: { contains: q } } } },
+      ],
+    });
+  }
+
+  if (and.length > 0) {
+    where.AND = and;
+  }
+
+  const [products, categories, brandRows] = await Promise.all([
     prisma.product.findMany({
       where,
       include: {
         category: true,
-        _count: { select: { variations: true } },
+        variations: {
+          orderBy: { sku: "asc" },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -39,16 +77,61 @@ export default async function AdminProductsPage({ searchParams }: Props) {
       where: { parentId: { not: null } },
       orderBy: { name: "asc" },
     }),
+    prisma.product.findMany({
+      where: { brand: { not: null } },
+      select: { brand: true },
+      distinct: ["brand"],
+      orderBy: { brand: "asc" },
+    }),
   ]);
+
+  const brands = brandRows
+    .map((r) => r.brand)
+    .filter((b): b is string => Boolean(b?.trim()))
+    .sort((a, b) => a.localeCompare(b));
+
+  const catalogProducts = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    brand: p.brand,
+    defaultPricePaise: p.defaultPricePaise,
+    purchasePricePaise: p.purchasePricePaise,
+    purchasePriceDate: p.purchasePriceDate,
+    gstRateBps: p.gstRateBps,
+    isActive: p.isActive,
+    category: { name: p.category.name, type: p.category.type },
+    variations: p.variations.map((v) => ({
+      id: v.id,
+      sku: v.sku,
+      label: v.label,
+      attributes: v.attributes as Record<string, string>,
+      defaultPricePaise: v.defaultPricePaise,
+      purchasePricePaise: v.purchasePricePaise,
+      purchasePriceDate: v.purchasePriceDate,
+      imageUrl: v.imageUrl,
+      isActive: v.isActive,
+    })),
+  }));
+
+  const filterSummary = [
+    params.search && `"${params.search}"`,
+    params.category && `category: ${params.category}`,
+    params.brand && `brand: ${params.brand}`,
+    params.status && params.status,
+    params.variants && `variants: ${params.variants}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div className="space-y-6 admin-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Catalog</h1>
           <p className="text-gray-500 text-sm">
-            {products.length} products & services
-            {params.search ? ` matching "${params.search}"` : ""}
+            {products.length} products &amp; services
+            {filterSummary ? ` · ${filterSummary}` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -66,99 +149,17 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Link
-          href="/admin/products"
-          className={`px-3 py-1.5 rounded-lg text-sm ${!params.category ? "bg-brand-600 text-white" : "bg-white border text-gray-600"}`}
-        >
-          All
-        </Link>
-        {categories.map((c) => (
-          <Link
-            key={c.id}
-            href={`/admin/products?category=${c.slug}`}
-            className={`px-3 py-1.5 rounded-lg text-sm ${params.category === c.slug ? "bg-brand-600 text-white" : "bg-white border text-gray-600"}`}
-          >
-            {c.name}
-          </Link>
-        ))}
-      </div>
+      <Suspense
+        fallback={
+          <div className="bg-white rounded-xl border p-4 h-24 text-sm text-gray-400">
+            Loading filters…
+          </div>
+        }
+      >
+        <AdminProductFilters categories={categories} brands={brands} />
+      </Suspense>
 
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium">Name</th>
-              <th className="text-left px-4 py-3 font-medium">Brand</th>
-              <th className="text-left px-4 py-3 font-medium">Category</th>
-              <th className="text-left px-4 py-3 font-medium">GST</th>
-              <th className="text-left px-4 py-3 font-medium">Default Price</th>
-              <th className="text-left px-4 py-3 font-medium">Purchase</th>
-              <th className="text-left px-4 py-3 font-medium">Variations</th>
-              <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-right px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/products/${product.slug}`}
-                    className="font-medium text-gray-900 hover:text-brand-700"
-                  >
-                    {product.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-0.5 bg-brand-50 text-brand-700 rounded text-xs font-medium">
-                    {product.brand || "—"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-600">
-                  {product.category.name}
-                  <span className="block text-xs text-gray-400">
-                    {product.category.type === CategoryType.SERVICE ? "Service" : "Product"}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{product.gstRateBps / 100}%</td>
-                <td className="px-4 py-3 font-medium">{formatPaise(product.defaultPricePaise)}</td>
-                <td className="px-4 py-3 text-gray-600">
-                  {product.purchasePricePaise != null ? (
-                    <>
-                      <span className="font-medium text-gray-900">
-                        {formatPaise(product.purchasePricePaise)}
-                      </span>
-                      {product.purchasePriceDate && (
-                        <span className="block text-xs text-gray-400">
-                          {new Date(product.purchasePriceDate).toLocaleDateString("en-IN", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-4 py-3">{product._count.variations}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-xs ${product.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
-                  >
-                    {product.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <ProductActions productId={product.id} slug={product.slug} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <CatalogProductTable products={catalogProducts} />
     </div>
   );
 }

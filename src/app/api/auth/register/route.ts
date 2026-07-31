@@ -7,8 +7,12 @@ import {
   validateContactPersonName,
 } from "@/lib/contact-fields";
 import { Role } from "@prisma/client";
+import { enforceAuthRateLimit } from "@/lib/api-security";
 
 export async function POST(req: Request) {
+  const limited = enforceAuthRateLimit(req, "register");
+  if (limited) return limited;
+
   try {
     const body = await req.json();
     const {
