@@ -137,8 +137,13 @@ export default async function AdminProductsPage({ searchParams }: Props) {
         <div className="flex items-center gap-2">
           <CsvDownloadButton
             href="/api/admin/products/export"
-            label="Download Catalog (CSV)"
+            label="Catalog Detail CSV"
             className="inline-flex items-center gap-2 px-4 py-2 border border-brand-200 bg-white text-brand-700 rounded-lg text-sm font-medium hover:bg-brand-50"
+          />
+          <CsvDownloadButton
+            href="/api/admin/products/export?view=summary"
+            label="Catalog Summary CSV"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
           />
           <Link
             href="/admin/products/new"

@@ -2,27 +2,23 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
 import { parseJSON } from "@/lib/utils";
+import {
+  attrsString,
+  formatExportDate,
+  inrFromPaise,
+  productCode,
+  truncateText,
+  variantCode,
+  variantDisplayName,
+  variantsSummaryList,
+} from "@/lib/export-format";
 
-function inrFromPaise(paise: number | null | undefined): string {
-  if (paise == null) return "";
-  return (paise / 100).toFixed(2);
-}
-
-function formatDateIso(d: Date | null | undefined): string {
-  if (!d) return "";
-  return d.toISOString().slice(0, 10);
-}
-
-function attrsString(attrs: unknown): string {
-  if (!attrs || typeof attrs !== "object") return "";
-  return Object.entries(attrs as Record<string, string>)
-    .map(([k, v]) => `${k}: ${v}`)
-    .join("; ");
-}
-
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await requireAdminApi();
   if (!auth.authorized) return auth.response;
+
+  const view = new URL(req.url).searchParams.get("view") || "detail";
+  const date = new Date().toISOString().slice(0, 10);
 
   const products = await prisma.product.findMany({
     include: {
@@ -40,47 +36,111 @@ export async function GET() {
     orderBy: [{ category: { name: "asc" } }, { name: "asc" }],
   });
 
+  if (view === "summary") {
+    const headers = [
+      "Row No",
+      "Product Code",
+      "Product Name",
+      "Brand",
+      "Department",
+      "Category",
+      "Application",
+      "Category Type",
+      "HSN Code",
+      "GST %",
+      "List Price (INR)",
+      "Purchase Price (INR)",
+      "Purchase Date",
+      "Status",
+      "Variant Count",
+      "All Variants (Name | Code | Price INR)",
+      "Description",
+      "Image URLs",
+      "Created",
+      "Updated",
+    ];
+
+    const rows = products.map((p, idx) => {
+      const images = parseJSON<string[]>(p.images, []);
+      const code = productCode(p.slug);
+      return [
+        idx + 1,
+        code,
+        p.name,
+        p.brand || "",
+        p.category.parent?.name || p.category.name,
+        p.category.parent ? p.category.name : "",
+        p.category.application,
+        p.category.type,
+        p.hsnCode || "",
+        ((p.gstRateBps || 0) / 100).toFixed(2),
+        inrFromPaise(p.defaultPricePaise),
+        inrFromPaise(p.purchasePricePaise),
+        formatExportDate(p.purchasePriceDate),
+        p.isActive ? "Active" : "Inactive",
+        String(p.variations.length),
+        variantsSummaryList(
+          p.variations.map((v, vi) => ({
+            label: v.label,
+            sku: variantCode(v.sku, p.slug, vi),
+            attributes: v.attributes,
+            defaultPricePaise: v.defaultPricePaise,
+          }))
+        ),
+        truncateText(p.description, 300),
+        images.filter(Boolean).join(" | "),
+        formatExportDate(p.createdAt),
+        formatExportDate(p.updatedAt),
+      ];
+    });
+
+    return csvDownloadResponse(
+      buildCsv(headers, rows),
+      `lohiya-catalog-summary-${date}.csv`
+    );
+  }
+
   const headers = [
-    "Product ID",
+    "Row No",
+    "Product Code",
     "Product Name",
-    "Slug",
     "Brand",
-    "Description",
     "Department",
     "Category",
     "Application",
     "Category Type",
     "HSN Code",
     "GST %",
-    "List Price (INR)",
-    "Purchase Price (INR)",
-    "Purchase Date",
-    "Product Active",
-    "Image Count",
+    "Product List Price (INR)",
+    "Product Purchase Price (INR)",
+    "Product Purchase Date",
+    "Product Status",
+    "Description",
     "Image URLs",
-    "Variation ID",
-    "Variation Label",
-    "SKU",
-    "Variation Price (INR)",
-    "Variation Purchase (INR)",
-    "Variation Purchase Date",
-    "Variation Attributes",
-    "Variation Active",
+    "Variant Code (SKU)",
+    "Variant Name",
+    "Variant List Price (INR)",
+    "Variant Purchase Price (INR)",
+    "Variant Purchase Date",
+    "Variant Attributes",
+    "Variant Status",
+    "Total Variants",
     "Product Created",
     "Product Updated",
   ];
 
   const rows: unknown[][] = [];
+  let rowNo = 0;
 
   for (const p of products) {
     const images = parseJSON<string[]>(p.images, []);
     const imageUrls = images.filter(Boolean).join(" | ");
+    const code = productCode(p.slug);
     const base = [
-      p.id,
+      "", // row no filled per row
+      code,
       p.name,
-      p.slug,
       p.brand || "",
-      p.description.replace(/\s+/g, " ").trim(),
       p.category.parent?.name || p.category.name,
       p.category.parent ? p.category.name : "",
       p.category.application,
@@ -89,40 +149,46 @@ export async function GET() {
       ((p.gstRateBps || 0) / 100).toFixed(2),
       inrFromPaise(p.defaultPricePaise),
       inrFromPaise(p.purchasePricePaise),
-      formatDateIso(p.purchasePriceDate),
-      p.isActive ? "Yes" : "No",
-      String(images.length),
+      formatExportDate(p.purchasePriceDate),
+      p.isActive ? "Active" : "Inactive",
+      truncateText(p.description, 300),
       imageUrls,
     ];
+    const variantCount = String(p.variations.length);
 
     if (p.variations.length === 0) {
+      rowNo += 1;
       rows.push([
+        rowNo,
         ...base,
         "",
+        "Standard (no variants)",
+        inrFromPaise(p.defaultPricePaise),
         "",
         "",
         "",
-        "",
-        "",
-        "",
-        "",
-        formatDateIso(p.createdAt),
-        formatDateIso(p.updatedAt),
+        "Active",
+        variantCount,
+        formatExportDate(p.createdAt),
+        formatExportDate(p.updatedAt),
       ]);
     } else {
-      for (const v of p.variations) {
+      for (let vi = 0; vi < p.variations.length; vi++) {
+        const v = p.variations[vi];
+        rowNo += 1;
         rows.push([
+          rowNo,
           ...base,
-          v.id,
-          v.label || "",
-          v.sku,
+          variantCode(v.sku, p.slug, vi),
+          variantDisplayName(v.label, v.attributes, v.sku),
           inrFromPaise(v.defaultPricePaise),
           inrFromPaise(v.purchasePricePaise),
-          formatDateIso(v.purchasePriceDate),
+          formatExportDate(v.purchasePriceDate),
           attrsString(v.attributes),
-          v.isActive ? "Yes" : "No",
-          formatDateIso(p.createdAt),
-          formatDateIso(p.updatedAt),
+          v.isActive ? "Active" : "Inactive",
+          variantCount,
+          formatExportDate(p.createdAt),
+          formatExportDate(p.updatedAt),
         ]);
       }
     }
@@ -130,6 +196,6 @@ export async function GET() {
 
   return csvDownloadResponse(
     buildCsv(headers, rows),
-    `lohiya-catalog-detail-${new Date().toISOString().slice(0, 10)}.csv`
+    `lohiya-catalog-detail-${date}.csv`
   );
 }

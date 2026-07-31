@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
+import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
 import { formatDate, formatPaise } from "@/lib/utils";
+import { clientCode } from "@/lib/export-format";
 
 export async function GET() {
   const auth = await requireAdminApi();
@@ -10,51 +11,55 @@ export async function GET() {
   const orders = await prisma.order.findMany({
     include: {
       client: { select: { name: true, email: true, phone: true, clientProfile: true } },
-      items: { include: { product: true } },
+      items: { include: { product: { select: { slug: true, brand: true } } } },
     },
     orderBy: { createdAt: "desc" },
   });
 
   const headers = [
     "Order Number",
-    "Client",
+    "Client Code",
+    "Client Name",
     "Email",
     "Phone",
     "Company",
-    "Status",
-    "Payment",
-    "Subtotal",
-    "Tax",
-    "Total",
-    "Items",
-    "Date",
+    "Order Status",
+    "Payment Status",
+    "Subtotal (INR)",
+    "Tax (INR)",
+    "Total (INR)",
+    "Paid (INR)",
+    "Balance (INR)",
+    "Line Items (Product | Variant | Qty | Amount)",
+    "Order Date",
   ];
 
-  const rows = orders.map((o) => [
+  const rows = orders.map((o, idx) => [
     o.orderNumber,
-    o.client.name || "—",
+    clientCode(o.client.email, idx),
+    o.client.name || "",
     o.client.email,
     o.client.phone || "",
     o.client.clientProfile?.company || "",
-    o.status,
-    o.paymentStatus,
+    o.status.replace(/_/g, " "),
+    o.paymentStatus.replace(/_/g, " "),
     formatPaise(o.subtotalPaise).replace("₹", ""),
     formatPaise(o.taxPaise).replace("₹", ""),
     formatPaise(o.totalPaise).replace("₹", ""),
+    formatPaise(o.paidPaise).replace("₹", ""),
+    formatPaise(o.pendingPaymentPaise).replace("₹", ""),
     o.items
-      .map((i) => `${i.productName}${i.variationLabel ? ` (${i.variationLabel})` : ""} x${i.quantity}`)
-      .join("; "),
+      .map((i) => {
+        const variant = i.variationLabel ? ` [${i.variationLabel}]` : "";
+        const brand = i.product.brand ? ` (${i.product.brand})` : "";
+        return `${i.productName}${brand}${variant} ×${i.quantity} = ${formatPaise(i.totalPaise)}`;
+      })
+      .join(" | "),
     formatDate(o.createdAt),
   ]);
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="lohiya-orders-${new Date().toISOString().slice(0, 10)}.csv"`,
-    },
-  });
+  return csvDownloadResponse(
+    buildCsv(headers, rows),
+    `lohiya-orders-${new Date().toISOString().slice(0, 10)}.csv`
+  );
 }

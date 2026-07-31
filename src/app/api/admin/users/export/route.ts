@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
-import { formatDate, formatPaise } from "@/lib/utils";
+import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
+import { formatPaise, formatDate } from "@/lib/utils";
 import { Role } from "@prisma/client";
+import { clientCode } from "@/lib/export-format";
+import { buildClientLocation } from "@/lib/crm-locations";
 
 export async function GET(req: Request) {
   const auth = await requireAdminApi();
@@ -24,50 +26,55 @@ export async function GET(req: Request) {
   });
 
   const headers = [
-    "ID",
+    "Client Code",
     "Contact Person",
     "Email",
-    "Contact Number",
+    "Phone",
     "Company",
     "GSTIN",
     "Billing State",
-    "Address",
     "City",
+    "Address",
     "Pincode",
+    "Country",
+    "Full Address",
     "Status",
-    "Orders",
-    "Total Spent",
-    "Joined",
+    "Total Orders",
+    "Total Spent (INR)",
+    "Joined Date",
   ];
 
-  const rows = users.map((u) => {
+  const rows = users.map((u, idx) => {
     const totalSpent = u.orders.reduce((s, o) => s + o.totalPaise, 0);
+    const loc = buildClientLocation({
+      address: u.clientProfile?.address,
+      city: u.clientProfile?.city,
+      billingState: u.clientProfile?.billingState,
+      pincode: u.clientProfile?.pincode,
+      country: u.clientProfile?.country,
+    });
     return [
-      u.id,
+      clientCode(u.email, idx),
       u.name || "",
       u.email,
       u.phone || "",
       u.clientProfile?.company || "",
       u.clientProfile?.gstin || "",
       u.clientProfile?.billingState || "",
-      u.clientProfile?.address || "",
       u.clientProfile?.city || "",
+      u.clientProfile?.address || "",
       u.clientProfile?.pincode || "",
-      u.isActive ? "Active" : "Inactive",
+      u.clientProfile?.country || "India",
+      loc.fullAddress,
+      u.isActive ? "Active" : "Suspended",
       u._count.orders,
       formatPaise(totalSpent).replace("₹", ""),
       formatDate(u.createdAt),
     ];
   });
 
-  const csv = [headers, ...rows]
-    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-    .join("\n");
-
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": `attachment; filename="lohiya-clients-${new Date().toISOString().slice(0, 10)}.csv"`,
-    },
-  });
+  return csvDownloadResponse(
+    buildCsv(headers, rows),
+    `lohiya-clients-${new Date().toISOString().slice(0, 10)}.csv`
+  );
 }

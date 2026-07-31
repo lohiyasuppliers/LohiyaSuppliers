@@ -10,7 +10,15 @@ export async function GET() {
     orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
   });
 
-  const headers = ["ID", "Key", "Title", "Subtitle", "Active", "Sort Order", "Items Count", "Content"];
+  const headers = [
+    "Section Key",
+    "Title",
+    "Subtitle",
+    "Status",
+    "Sort Order",
+    "Items Count",
+    "Content Preview",
+  ];
   const rows = sections.map((s) => {
     let itemCount = 0;
     try {
@@ -19,15 +27,15 @@ export async function GET() {
     } catch {
       itemCount = 0;
     }
+    const preview = (s.content || "").replace(/\s+/g, " ").trim().slice(0, 200);
     return [
-      s.id,
       s.key,
       s.title,
       s.subtitle || "",
-      s.isActive ? "Yes" : "No",
+      s.isActive ? "Active" : "Inactive",
       s.sortOrder,
       itemCount,
-      s.content,
+      preview,
     ];
   });
 

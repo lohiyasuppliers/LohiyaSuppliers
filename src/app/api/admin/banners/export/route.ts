@@ -10,16 +10,25 @@ export async function GET() {
     orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
   });
 
-  const headers = ["ID", "Title", "Subtitle", "Image URL", "Link URL", "Sort Order", "Active", "Created"];
-  const rows = banners.map((b) => [
-    b.id,
+  const headers = [
+    "Banner No",
+    "Title",
+    "Subtitle",
+    "Image URL",
+    "Link URL",
+    "Sort Order",
+    "Status",
+    "Created Date",
+  ];
+  const rows = banners.map((b, idx) => [
+    `BNR-${String(idx + 1).padStart(3, "0")}`,
     b.title,
     b.subtitle || "",
     b.imageUrl,
     b.linkUrl || "",
     b.sortOrder,
-    b.isActive ? "Yes" : "No",
-    new Date(b.createdAt).toISOString(),
+    b.isActive ? "Active" : "Inactive",
+    new Date(b.createdAt).toISOString().slice(0, 10),
   ]);
 
   return csvDownloadResponse(buildCsv(headers, rows), "lohiya-banners.csv");

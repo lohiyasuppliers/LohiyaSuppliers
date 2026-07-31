@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
 import { formatPaise } from "@/lib/utils";
+import { clientCode } from "@/lib/export-format";
 
 export async function GET() {
   const auth = await requireAdminApi();
@@ -21,24 +22,25 @@ export async function GET() {
   });
 
   const headers = [
-    "ID",
-    "Code",
-    "Client",
+    "Voucher Code",
+    "Client Code",
+    "Client Name",
     "Email",
     "Company",
-    "Type",
-    "Value",
+    "Discount Type",
+    "Discount Value",
     "Scope",
-    "Min Order",
-    "Used",
+    "Min Order (INR)",
+    "Times Used",
     "Max Uses",
-    "Active",
-    "Expires",
+    "Status",
+    "Expiry Date",
+    "Created",
   ];
 
-  const rows = vouchers.map((v) => [
-    v.id,
+  const rows = vouchers.map((v, idx) => [
     v.code,
+    clientCode(v.client.email, idx),
     v.client.name || "",
     v.client.email,
     v.client.clientProfile?.company || "",
@@ -47,9 +49,10 @@ export async function GET() {
     v.scope,
     v.minOrderPaise > 0 ? formatPaise(v.minOrderPaise).replace("₹", "") : "",
     v.usedCount,
-    v.maxUses ?? "",
-    v.isActive ? "Yes" : "No",
-    v.expiresAt ? new Date(v.expiresAt).toISOString() : "",
+    v.maxUses ?? "Unlimited",
+    v.isActive ? "Active" : "Inactive",
+    v.expiresAt ? new Date(v.expiresAt).toISOString().slice(0, 10) : "",
+    new Date(v.createdAt).toISOString().slice(0, 10),
   ]);
 
   return csvDownloadResponse(buildCsv(headers, rows), "lohiya-coupons.csv");

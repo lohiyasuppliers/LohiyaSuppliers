@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin-api";
 import { getCrmDashboardData } from "@/lib/crm-data";
 import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
+import { prisma } from "@/lib/prisma";
 import { formatPaise } from "@/lib/utils";
+import { clientCode, productCode, variantCode, variantDisplayName, inrFromPaise } from "@/lib/export-format";
 
 export async function GET(req: Request) {
   const auth = await requireAdminApi();
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
 
   if (type === "locations") {
     const headers = [
-      "Client ID",
+      "Client Code",
       "Name",
       "Company",
       "Phone",
@@ -29,8 +30,8 @@ export async function GET(req: Request) {
       "Client Type",
       "Orders",
     ];
-    const rows = data.locations.map((l) => [
-      l.id,
+    const rows = data.locations.map((l, idx) => [
+      clientCode(data.clients.find((c) => c.id === l.id)?.email || `loc${idx}`, idx),
       l.name,
       l.company,
       l.phone || "",
@@ -47,32 +48,76 @@ export async function GET(req: Request) {
   }
 
   if (type === "products") {
+    const fullProducts = await prisma.product.findMany({
+      include: {
+        category: { select: { name: true, parent: { select: { name: true } } } },
+        variations: { orderBy: { sku: "asc" } },
+      },
+      orderBy: { name: "asc" },
+    });
+
     const headers = [
-      "Product ID",
-      "Name",
-      "Slug",
+      "Row No",
+      "Product Code",
+      "Product Name",
       "Brand",
       "Department",
       "Category",
-      "Application",
       "HSN",
       "List Price (INR)",
-      "Variations",
-      "Active",
+      "Status",
+      "Variant Code (SKU)",
+      "Variant Name",
+      "Variant Price (INR)",
+      "Variant Status",
     ];
-    const rows = data.products.map((p) => [
-      p.id,
-      p.name,
-      p.slug,
-      p.brand || "",
-      p.department,
-      p.category,
-      p.application,
-      p.hsnCode,
-      (p.defaultPricePaise / 100).toFixed(2),
-      String(p.variationCount),
-      p.isActive ? "Yes" : "No",
-    ]);
+
+    const rows: unknown[][] = [];
+    let rowNo = 0;
+    for (const p of fullProducts) {
+      const code = productCode(p.slug);
+      const dept = p.category.parent?.name || p.category.name;
+      const cat = p.category.parent ? p.category.name : "";
+      if (p.variations.length === 0) {
+        rowNo += 1;
+        rows.push([
+          rowNo,
+          code,
+          p.name,
+          p.brand || "",
+          dept,
+          cat,
+          p.hsnCode,
+          inrFromPaise(p.defaultPricePaise),
+          p.isActive ? "Active" : "Inactive",
+          code,
+          "Standard",
+          inrFromPaise(p.defaultPricePaise),
+          "Active",
+        ]);
+      } else {
+        for (let vi = 0; vi < p.variations.length; vi++) {
+          const v = p.variations[vi];
+          rowNo += 1;
+          rows.push([
+            rowNo,
+            code,
+            p.name,
+            p.brand || "",
+            dept,
+            cat,
+            p.hsnCode,
+            inrFromPaise(p.defaultPricePaise),
+            p.isActive ? "Active" : "Inactive",
+            variantCode(v.sku, p.slug, vi),
+            variantDisplayName(v.label, v.attributes, v.sku),
+            inrFromPaise(v.defaultPricePaise),
+            v.isActive ? "Active" : "Inactive",
+          ]);
+        }
+      }
+    }
+
     return csvDownloadResponse(buildCsv(headers, rows), `crm-products-${date}.csv`);
   }
 
@@ -110,7 +155,7 @@ export async function GET(req: Request) {
   }
 
   const headers = [
-    "Client ID",
+    "Client Code",
     "Name",
     "Email",
     "Phone",
@@ -124,7 +169,7 @@ export async function GET(req: Request) {
     "Country",
     "Map URL",
     "Type",
-    "Active",
+    "Status",
     "Orders",
     "Total Spent (INR)",
     "Cashback (INR)",
@@ -133,8 +178,8 @@ export async function GET(req: Request) {
     "Last Order",
   ];
 
-  const rows = data.clients.map((c) => [
-    c.id,
+  const rows = data.clients.map((c, idx) => [
+    clientCode(c.email, idx),
     c.name,
     c.email,
     c.phone || "",

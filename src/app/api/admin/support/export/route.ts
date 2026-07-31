@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
+import { clientCode } from "@/lib/export-format";
 
 export async function GET() {
   const auth = await requireAdminApi();
@@ -25,26 +26,28 @@ export async function GET() {
   });
 
   const headers = [
-    "Thread ID",
+    "Ticket No",
     "Subject",
-    "Client",
+    "Client Code",
+    "Client Name",
     "Email",
     "Company",
-    "Messages",
+    "Message Count",
     "Last Activity",
-    "Conversation",
+    "Conversation Summary",
   ];
 
-  const rows = threads.map((t) => [
-    t.id,
+  const rows = threads.map((t, idx) => [
+    `TKT-${String(idx + 1).padStart(4, "0")}`,
     t.subject,
+    clientCode(t.client.email, idx),
     t.client.name || "",
     t.client.email,
     t.client.clientProfile?.company || "",
     t._count.messages,
-    new Date(t.lastMessageAt).toISOString(),
+    new Date(t.lastMessageAt).toISOString().slice(0, 16).replace("T", " "),
     t.messages
-      .map((m) => `[${m.senderRole}] ${m.body.replace(/\s+/g, " ").trim()}`)
+      .map((m) => `[${m.senderRole}] ${m.body.replace(/\s+/g, " ").trim().slice(0, 120)}`)
       .join(" | "),
   ]);
 

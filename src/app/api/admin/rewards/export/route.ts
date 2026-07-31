@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin-api";
 import { expireAllDueWalletEntries, sumWalletBalances } from "@/lib/cashback-wallet";
+import { buildCsv, csvDownloadResponse } from "@/lib/csv-export";
 import { formatPaise } from "@/lib/utils";
+import { clientCode } from "@/lib/export-format";
 import { CashbackWalletStatus } from "@prisma/client";
 
 export async function GET() {
@@ -14,7 +15,6 @@ export async function GET() {
   const clients = await prisma.user.findMany({
     where: { role: "CLIENT" },
     select: {
-      id: true,
       name: true,
       email: true,
       clientProfile: { select: { company: true } },
@@ -32,38 +32,37 @@ export async function GET() {
     orderBy: { name: "asc" },
   });
 
-  const now = new Date();
-  const lines = [
-    "Client ID,Name,Email,Company,Active Discounts,Available Cashback,Locked Cashback",
+  const headers = [
+    "Client Code",
+    "Name",
+    "Email",
+    "Company",
+    "Active Discounts",
+    "Available Cashback (INR)",
+    "Locked Cashback (INR)",
   ];
 
-  for (const c of clients) {
+  const now = new Date();
+  const rows = clients.map((c, idx) => {
     const b = sumWalletBalances(c.cashbackWallet, now);
     const discounts = c.discountRules
       .map((d) =>
         d.type === "FIXED"
-          ? `${d.title}:${formatPaise(d.valuePaise ?? 0)}`
-          : `${d.title}:${(d.valueBps ?? 0) / 100}%`
+          ? `${d.title}: ${formatPaise(d.valuePaise ?? 0)}`
+          : `${d.title}: ${(d.valueBps ?? 0) / 100}%`
       )
-      .join("; ");
+      .join(" | ");
 
-    lines.push(
-      [
-        c.id,
-        `"${(c.name || "").replace(/"/g, '""')}"`,
-        c.email,
-        `"${(c.clientProfile?.company || "").replace(/"/g, '""')}"`,
-        `"${discounts}"`,
-        (b.availablePaise / 100).toFixed(2),
-        (b.lockedPaise / 100).toFixed(2),
-      ].join(",")
-    );
-  }
-
-  return new NextResponse(lines.join("\n"), {
-    headers: {
-      "Content-Type": "text/csv",
-      "Content-Disposition": 'attachment; filename="client-rewards.csv"',
-    },
+    return [
+      clientCode(c.email, idx),
+      c.name || "",
+      c.email,
+      c.clientProfile?.company || "",
+      discounts,
+      (b.availablePaise / 100).toFixed(2),
+      (b.lockedPaise / 100).toFixed(2),
+    ];
   });
+
+  return csvDownloadResponse(buildCsv(headers, rows), "client-rewards.csv");
 }
