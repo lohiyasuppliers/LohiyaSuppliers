@@ -5,6 +5,7 @@ import { slugify } from "@/lib/utils";
 import { rupeesToPaise } from "@/lib/money";
 import { DEFAULT_GST_RATE_BPS } from "@/lib/constants";
 import { revalidateProductCatalog } from "@/lib/revalidate-catalog";
+import { normalizeBrandInput } from "@/lib/brands";
 
 export async function POST(req: Request) {
   const auth = await requireAdminApi();
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
     data: {
       name: body.name,
       slug,
-      brand: body.brand || null,
+      brand: normalizeBrandInput(body.brand),
       description: body.description || "",
       categoryId: body.categoryId,
       hsnCode: body.hsnCode,

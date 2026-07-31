@@ -5,6 +5,7 @@ import { Eye, UserCog } from "lucide-react";
 import { UserRoleBadge } from "@/components/admin/UserRoleBadge";
 import { CsvDownloadButton } from "@/components/admin/CsvDownloadButton";
 import { UserAccountActions } from "@/components/admin/UserAccountActions";
+import { WhatsAppLink } from "@/components/admin/WhatsAppLink";
 import { getSession } from "@/lib/session";
 import { Role } from "@prisma/client";
 
@@ -104,7 +105,14 @@ export default async function UserManagementPage() {
                       </Link>
                       <div className="text-xs text-gray-500">{user.email}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{user.phone || "—"}</td>
+                    <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span>{user.phone || "—"}</span>
+                        {user.phone && (
+                          <WhatsAppLink phone={user.phone} name={user.name} compact />
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">{user.clientProfile?.company || "—"}</td>
                     <td className="px-4 py-3 text-xs font-mono text-gray-600 whitespace-nowrap">
                       {user.clientProfile?.gstin || "—"}

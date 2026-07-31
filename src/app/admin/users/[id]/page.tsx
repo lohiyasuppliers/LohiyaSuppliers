@@ -10,6 +10,8 @@ import { ClientCashbackManager } from "@/components/admin/ClientCashbackManager"
 import { ClientDiscountManager } from "@/components/admin/ClientDiscountManager";
 import { ClientGstChoiceToggle } from "@/components/admin/ClientGstChoiceToggle";
 import { UserAccountActions } from "@/components/admin/UserAccountActions";
+import { ClientCredentialsPanel } from "@/components/admin/ClientCredentialsPanel";
+import { WhatsAppLink } from "@/components/admin/WhatsAppLink";
 import { getSession } from "@/lib/session";
 import { ArrowLeft } from "lucide-react";
 import { Role } from "@prisma/client";
@@ -77,6 +79,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
               >
                 {user.isActive ? "Active" : "Suspended"}
               </span>
+              <WhatsAppLink phone={user.phone} name={user.name} compact />
             </div>
           </div>
           <UserRoleBadge role={user.role} />
@@ -91,6 +94,10 @@ export default async function AdminUserDetailPage({ params }: Props) {
             canManage={session?.user?.id !== user.id}
             redirectOnDelete
           />
+        )}
+
+        {user.role === Role.CLIENT && (
+          <ClientCredentialsPanel userId={user.id} email={user.email} phone={user.phone} />
         )}
 
         {user.role === Role.CLIENT && user.clientProfile && (

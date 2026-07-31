@@ -6,6 +6,7 @@ import { rupeesToPaise } from "@/lib/money";
 import { DEFAULT_GST_RATE_BPS } from "@/lib/constants";
 import { syncProductDefaultPriceFromVariations } from "@/lib/product-price";
 import { revalidateProductCatalog } from "@/lib/revalidate-catalog";
+import { normalizeBrandInput } from "@/lib/brands";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await requireAdminApi();
@@ -28,7 +29,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     data: {
       name: body.name,
       slug: body.slug || slugify(body.name),
-      brand: body.brand,
+      brand: normalizeBrandInput(body.brand),
       description: body.description,
       categoryId: body.categoryId,
       hsnCode: body.hsnCode,

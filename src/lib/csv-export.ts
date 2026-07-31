@@ -9,7 +9,8 @@ export function buildCsv(headers: string[], rows: unknown[][]): string {
 }
 
 export function csvDownloadResponse(csv: string, filename: string) {
-  return new NextResponse(csv, {
+  const bom = "\uFEFF";
+  return new NextResponse(bom + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,

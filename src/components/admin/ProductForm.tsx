@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { slugify, parseJSON } from "@/lib/utils";
 import { generateVariationSku } from "@/lib/sku";
 import { DEFAULT_GST_RATE_PERCENT } from "@/lib/constants";
+import { mergeBrandOptions } from "@/lib/brands";
 import { ImageUpload } from "./ImageUpload";
 import { VariationManager, VariationDraft } from "./VariationManager";
 
@@ -33,9 +34,9 @@ interface ProductFormProps {
     images: string;
   };
   initialVariations?: VariationDraft[];
+  brandOptions?: string[];
 }
 
-const DEFAULT_BRAND_OPTIONS = ["Deerfros", "Leitz", "AIPL", "Other"];
 
 function toDateInputValue(value?: Date | string | null) {
   if (!value) return "";
@@ -44,15 +45,16 @@ function toDateInputValue(value?: Date | string | null) {
   return d.toISOString().slice(0, 10);
 }
 
-export function ProductForm({ categories, initialData, initialVariations = [] }: ProductFormProps) {
+export function ProductForm({ categories, initialData, initialVariations = [], brandOptions = [] }: ProductFormProps) {
   const router = useRouter();
+  const allBrandOptions = mergeBrandOptions(brandOptions);
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<string[]>(
     parseJSON<string[]>(initialData?.images || "[]", [])
   );
   const [variations, setVariations] = useState<VariationDraft[]>(initialVariations);
   const [customBrand, setCustomBrand] = useState(
-    initialData?.brand && !DEFAULT_BRAND_OPTIONS.includes(initialData.brand)
+    initialData?.brand && !allBrandOptions.includes(initialData.brand)
       ? initialData.brand
       : ""
   );
@@ -74,7 +76,7 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
 
   const leafCategories = categories.filter((c) => c.parentId);
   const brandSelectValue =
-    form.brand === "Other" || (form.brand && !DEFAULT_BRAND_OPTIONS.includes(form.brand))
+    form.brand === "Other" || (form.brand && !allBrandOptions.includes(form.brand))
       ? "Other"
       : form.brand;
   const resolvedBrand =
@@ -154,17 +156,22 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
               value={brandSelectValue}
               onChange={(e) => {
                 const next = e.target.value;
-                setForm({ ...form, brand: next });
-                if (next !== "Other") setCustomBrand("");
+                if (next === "Other") {
+                  setForm({ ...form, brand: "Other" });
+                } else {
+                  setForm({ ...form, brand: next });
+                  setCustomBrand("");
+                }
               }}
               className="w-full px-3 py-2 border rounded-lg text-sm"
             >
-              {DEFAULT_BRAND_OPTIONS.map((b) => (
+              {allBrandOptions.map((b) => (
                 <option key={b} value={b}>{b}</option>
               ))}
+              <option value="Other">Other (custom)</option>
             </select>
             {(brandSelectValue === "Other" ||
-              (form.brand && !DEFAULT_BRAND_OPTIONS.includes(form.brand))) && (
+              (form.brand && !allBrandOptions.includes(form.brand))) && (
               <input
                 value={customBrand || (brandSelectValue !== "Other" ? form.brand : "")}
                 onChange={(e) => {
@@ -176,7 +183,7 @@ export function ProductForm({ categories, initialData, initialVariations = [] }:
               />
             )}
             <p className="text-xs text-gray-500 mt-1">
-              Pick a brand or choose Other to add a new one.
+              Pick a brand or choose Other to add a new one. Changes apply to this product only.
             </p>
           </div>
           <div className="sm:col-span-2">

@@ -19,6 +19,7 @@ import {
   Globe,
   Gift,
   MessageCircle,
+  Contact,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/admin/categories", label: "Categories", icon: Tags },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/users", label: "Clients", icon: Users },
+  { href: "/admin/crm", label: "CRM", icon: Contact },
   { href: "/admin/support", label: "Support", icon: MessageCircle },
   { href: "/admin/banners", label: "Banners", icon: ImageIcon },
   { href: "/admin/rewards", label: "Discount & Cashback", icon: Gift },
@@ -39,7 +41,13 @@ const navItems = [
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({
+  mobileOpen = false,
+  onMobileClose,
+}: {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -47,7 +55,9 @@ export function AdminSidebar() {
     <aside
       className={cn(
         "relative flex shrink-0 flex-col bg-gradient-to-b from-brand-950 via-brand-900 to-brand-950 text-white shadow-2xl transition-all duration-300",
-        collapsed ? "w-[72px]" : "w-64"
+        "fixed inset-y-0 left-0 z-50 lg:relative lg:z-auto lg:translate-x-0",
+        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        collapsed ? "w-[72px]" : "w-64 max-w-[85vw]"
       )}
     >
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-brand-400/20 to-transparent" />
@@ -70,6 +80,7 @@ export function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => onMobileClose?.()}
               className={cn(
                 "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-300 motion-btn-press",
                 isActive

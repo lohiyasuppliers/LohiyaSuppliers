@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ProductForm } from "@/components/admin/ProductForm";
+import { fetchDistinctProductBrands } from "@/lib/brands";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -8,7 +9,7 @@ interface Props {
 
 export default async function EditProductPage({ params }: Props) {
   const { slug } = await params;
-  const [product, categories] = await Promise.all([
+  const [product, categories, brandOptions] = await Promise.all([
     prisma.product.findUnique({
       where: { slug },
       include: { variations: { orderBy: { sku: "asc" } } },
@@ -17,6 +18,7 @@ export default async function EditProductPage({ params }: Props) {
       orderBy: { name: "asc" },
       include: { parent: { select: { name: true } } },
     }),
+    fetchDistinctProductBrands(),
   ]);
 
   if (!product) notFound();
@@ -44,6 +46,7 @@ export default async function EditProductPage({ params }: Props) {
         categories={categories}
         initialData={product}
         initialVariations={initialVariations}
+        brandOptions={brandOptions}
       />
     </div>
   );

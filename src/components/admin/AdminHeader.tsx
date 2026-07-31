@@ -2,7 +2,7 @@
 
 import { AdminSearch } from "@/components/admin/AdminSearch";
 import { signOut, useSession } from "next-auth/react";
-import { LogOut, ExternalLink, Bell, CheckCheck } from "lucide-react";
+import { LogOut, ExternalLink, Bell, CheckCheck, Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, Suspense } from "react";
@@ -13,6 +13,7 @@ const pageTitles: Record<string, string> = {
   "/admin/categories": "Categories",
   "/admin/orders": "Orders",
   "/admin/users": "Clients",
+  "/admin/crm": "CRM",
   "/admin/banners": "Banners",
   "/admin/coupons": "Coupons",
   "/admin/support": "Support",
@@ -31,7 +32,7 @@ type Notification = {
   createdAt: string;
 };
 
-export function AdminHeader() {
+export function AdminHeader({ onMenuClick }: { onMenuClick?: () => void }) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const pageTitle =
@@ -90,7 +91,15 @@ export function AdminHeader() {
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200/80 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-xl md:px-6 animate-slide-up">
-      <div className="flex min-w-0 flex-1 items-center gap-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="lg:hidden shrink-0 rounded-xl p-2 text-slate-600 hover:bg-slate-100"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         <div className="hidden sm:block shrink-0 animate-fade-in">
           <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Admin</p>
           <p key={pathname} className="text-sm font-bold text-slate-900 motion-page-admin">
