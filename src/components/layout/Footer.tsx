@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { Mail, MapPin, ArrowRight, Phone } from "lucide-react";
 import { ContactPhoneLinks } from "@/components/layout/ContactPhoneLinks";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 
 export function Footer({
   contactEmail = "",
@@ -36,18 +36,8 @@ export function Footer({
       <div className="max-w-7xl mx-auto px-4 py-14 relative">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           <div>
-            <div className="flex items-center gap-3 mb-5">
-              <Image
-                src="/logo.svg"
-                alt={siteName}
-                width={44}
-                height={44}
-                className="w-11 h-11"
-              />
-              <div>
-                <div className="font-bold text-white text-lg">{siteName}</div>
-                <div className="text-xs text-brand-400">Industrial Abrasives & Tools</div>
-              </div>
+            <div className="mb-5">
+              <BrandLogo href="/" variant="full" imageClassName="h-11" />
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               {siteTagline || "Supplying top-grade abrasives to meet the demands of the wooden and metal industries."}

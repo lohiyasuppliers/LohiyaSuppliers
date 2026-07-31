@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/button";
 
 const INDIAN_STATES = [
@@ -62,6 +63,7 @@ export default function RegisterPage() {
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 motion-page-store">
       <div className="w-full max-w-lg animate-pop-in">
         <div className="text-center mb-8">
+          <BrandLogo href="/" variant="full" className="justify-center mb-4" imageClassName="h-12" />
           <h1 className="text-2xl font-bold text-gray-900">Register as B2B Client</h1>
           <p className="text-gray-500 mt-1">
             Active immediately — default prices until admin sets your custom rates

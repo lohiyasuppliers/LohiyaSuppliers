@@ -3,6 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useState, Suspense } from "react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function LoginForm() {
@@ -94,9 +95,7 @@ export default function LoginPage() {
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 motion-page-store">
       <div className="w-full max-w-md animate-pop-in">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-xl gradient-hero flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
-            LS
-          </div>
+          <BrandLogo href="/" variant="full" className="justify-center mb-4" imageClassName="h-12" />
           <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
           <p className="text-gray-500 mt-1">Sign in to your Lohiya Suppliers account</p>
         </div>

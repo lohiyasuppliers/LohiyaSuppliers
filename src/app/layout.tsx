@@ -22,6 +22,10 @@ export const metadata: Metadata = {
     "B2B supplies",
     "Lohiya Suppliers",
   ],
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

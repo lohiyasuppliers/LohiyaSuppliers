@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import {
   LayoutDashboard,
   Package,
@@ -52,20 +52,13 @@ export function AdminSidebar() {
     >
       <div className="absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-brand-400/20 to-transparent" />
 
-      <div className="flex items-center gap-3 border-b border-white/10 p-4">
-        <Image
-          src="/logo.svg"
-          alt="Lohiya Suppliers"
-          width={40}
-          height={40}
-          className="h-10 w-10 shrink-0"
+      <div className="flex items-center border-b border-white/10 p-3">
+        <BrandLogo
+          variant={collapsed ? "icon" : "full"}
+          href="/admin"
+          className={collapsed ? "mx-auto" : "w-full justify-center"}
+          imageClassName={collapsed ? undefined : "h-9 max-w-full"}
         />
-        {!collapsed && (
-          <div className="admin-fade-in">
-            <div className="text-sm font-bold tracking-tight">Lohiya Suppliers</div>
-            <div className="text-xs text-brand-300">B2B Admin Panel</div>
-          </div>
-        )}
       </div>
 
       <nav className="admin-nav-stagger flex-1 space-y-1 overflow-y-auto px-2 py-4">

@@ -1,5 +1,6 @@
 import type { OrderBillData } from "@/lib/order-bill";
 import { formatPaise } from "@/lib/utils";
+import Image from "next/image";
 
 export function OrderBillView({ data }: { data: OrderBillData }) {
   return (
@@ -9,8 +10,17 @@ export function OrderBillView({ data }: { data: OrderBillData }) {
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-950 via-brand-800 to-brand-700 text-white px-6 md:px-10 py-8">
-        <div className="flex flex-wrap justify-between gap-6">
-          <div>
+        <div className="flex flex-wrap justify-between gap-6 items-start">
+          <div className="space-y-3">
+            <Image
+              src="/logo.png"
+              alt="Lohiya Suppliers"
+              width={200}
+              height={52}
+              unoptimized
+              className="h-12 w-auto object-contain brightness-0 invert"
+            />
+            <div>
             <p className="text-brand-200 text-xs font-semibold uppercase tracking-widest mb-1">
               Tax Invoice / Bill
             </p>
@@ -22,6 +32,7 @@ export function OrderBillView({ data }: { data: OrderBillData }) {
             {data.seller.gstin && (
               <p className="text-brand-200 text-sm font-mono mt-1">GSTIN: {data.seller.gstin}</p>
             )}
+            </div>
           </div>
           <div className="text-right">
             <p className="text-brand-200 text-xs uppercase tracking-wider">Bill No.</p>
